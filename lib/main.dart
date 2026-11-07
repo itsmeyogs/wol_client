@@ -15,9 +15,9 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) => GetMaterialApp(
-        title: 'WoL Client',
-        theme: AppTheme.light,
-        initialBinding: AppBinding(),
-        home: const GatewayListPage(),
-      );
+    title: 'WoL Client',
+    theme: AppTheme.light,
+    initialBinding: AppBinding(),
+    home: const GatewayListPage(),
+  );
 }

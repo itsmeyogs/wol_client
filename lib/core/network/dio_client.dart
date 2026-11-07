@@ -1,0 +1,110 @@
+import 'package:dio/dio.dart';
+import '../errors/gateway_failure.dart';
+import '../logging/app_logger.dart';
+import '../../data/models/gateway.dart';
+
+class DioClient {
+  DioClient._() {
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          _logger.info('${options.method} ${options.uri.path}');
+          handler.next(options);
+        },
+        onResponse: (response, handler) {
+          _logger.info(
+            '${response.statusCode} ${response.requestOptions.uri.path}',
+          );
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          _logger.error(
+            '${error.requestOptions.method} ${error.requestOptions.uri.path} failed',
+            _safeError(error),
+          );
+          handler.next(error);
+        },
+      ),
+    );
+  }
+
+  static final instance = DioClient._();
+  final Dio dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 8),
+      sendTimeout: const Duration(seconds: 8),
+      receiveTimeout: const Duration(seconds: 15),
+      validateStatus: (status) =>
+          status != null && status >= 200 && status < 300,
+    ),
+  );
+  final AppLogger _logger = AppLogger.instance;
+
+  Future<void> validateGateway(Gateway gateway) async {
+    try {
+      final response = await dio.get('${gateway.apiBaseUrl}/health');
+      if (response.data is! Map || response.data['status'] != 'ok') {
+        throw const GatewayFailure(
+          'Gateway health response is invalid.',
+          code: 'invalid_api',
+        );
+      }
+    } on GatewayFailure {
+      rethrow;
+    } on DioException catch (error) {
+      throw _mapError(error, healthCheck: true);
+    }
+    try {
+      await dio.get(
+        '${gateway.apiBaseUrl}/diagnostics',
+        options: Options(
+          headers: {'Authorization': 'Bearer ${gateway.apiToken}'},
+        ),
+      );
+    } on DioException catch (error) {
+      throw _mapError(error, healthCheck: false);
+    }
+  }
+
+  GatewayFailure _mapError(DioException error, {required bool healthCheck}) {
+    final status = error.response?.statusCode;
+    if (status == 401) {
+      return const GatewayFailure(
+        'API token is invalid.',
+        code: 'unauthorized',
+      );
+    }
+    if (status == 404) {
+      return const GatewayFailure(
+        'Gateway endpoint was not found.',
+        code: 'not_found',
+      );
+    }
+    if (status != null && status >= 400 && status < 500) {
+      return GatewayFailure(
+        healthCheck
+            ? 'Gateway URL was rejected.'
+            : 'Gateway rejected the diagnostics request.',
+        code: 'bad_request',
+      );
+    }
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout) {
+      return const GatewayFailure(
+        'Gateway request timed out.',
+        code: 'timeout',
+      );
+    }
+    return GatewayFailure(
+      healthCheck
+          ? 'Gateway cannot be reached.'
+          : 'Gateway could not process the request.',
+      code: 'network_error',
+    );
+  }
+
+  String _safeError(DioException error) => error.response?.statusCode == null
+      ? error.type.name
+      : 'HTTP ${error.response?.statusCode}';
+}

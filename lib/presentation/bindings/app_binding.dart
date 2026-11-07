@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../core/database/app_database.dart';
+import '../../core/network/dio_client.dart';
 import '../../data/datasources/gateway_local_data_source.dart';
 import '../../data/repositories/gateway_repository_impl.dart';
 import '../../domain/repositories/gateway_repository.dart';
@@ -12,6 +13,7 @@ class AppBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<AppDatabase>(AppDatabase.instance, permanent: true);
+    Get.put<DioClient>(DioClient.instance, permanent: true);
     Get.lazyPut<GatewayLocalDataSource>(
       () => GatewayLocalDataSource(database: Get.find<AppDatabase>()),
       fenix: true,
@@ -19,6 +21,7 @@ class AppBinding extends Bindings {
     Get.lazyPut<GatewayRepository>(
       () => GatewayRepositoryImpl(
         local: Get.find<GatewayLocalDataSource>(),
+        client: Get.find<DioClient>(),
       ),
       fenix: true,
     );
