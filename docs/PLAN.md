@@ -1,29 +1,390 @@
-# WoL Gateway Client — Checkpoints
+# WoL Gateway Client — Delivery Plan
 
-- CP0: architecture, dependencies, GetX, Dio, Logger, SQLite, responsive, WASM setup.
-- CP1: gateway SQLite CRUD, list, form, session, local validation, URL construction.
-- CP2: `/health`, authenticated `/diagnostics`, error mapping, validated Add/Edit save.
-- CP3: device CRUD, discovery/manual Add Device flow.
-- CP4: status checks and WoL wake.
-- CP5: diagnostics page.
-- CP6: all endpoints, errors, builds, responsive/accessibility review.
+## Rules
 
-No commit before the user marks the checkpoint passed.
+- Work proceeds checkpoint by checkpoint.
+- Do not commit before the user explicitly marks the checkpoint passed.
+- Each checkpoint gets a unique commit message.
+- Allowed commit types: `chore`, `feat`, `fix`, `test`, `docs`.
+- Every checkpoint ends with analyzer, test, and relevant build/API evidence.
+- Live gateway evidence is separate from local/mock evidence.
+- API tokens never appear in logs, test output, screenshots, or error notifications.
 
-## Current implementation note
+## Status summary
 
-CP0–CP2 source is implemented. Live gateway verification remains required before marking them passed. The current UI covers gateway list, empty state, add/edit validation, one-gateway session, and dashboard shell.
+| Checkpoint | Scope | Status | Commit |
+|---|---|---|---|
+| CP0 | Application foundation | Passed | `4508236 chore: establish application foundation` |
+| CP1 | Local gateway management | Passed | `9d20b48 feat: add local gateway management` |
+| CP2 | Gateway connectivity and validated save | Passed | `94baed3 feat: add gateway health connectivity` |
+| CP3 | Device management and Add Device flow | Implemented, not verified | Pending |
+| CP4 | Device status and wake actions | Pending | Pending |
+| CP5 | Diagnostics page | Pending | Pending |
+| CP6 | Full API and platform verification | Pending | Pending |
+| CP7 | Firebase authentication | Post-MVP | Pending |
+| CP8 | Firebase sync contract and Rules | Post-MVP | Pending |
+| CP9 | Firebase gateway sync | Post-MVP | Pending |
+| CP10 | Cross-device verification | Post-MVP | Pending |
 
-UI interaction update: gateway actions use long press; scheme uses a horizontal radio group; snackbar feedback is centralized through GetX `AppSnackbar`.
+## CP0 — Application foundation
 
-## Theme maintenance rule
+### Scope
 
-All theme configuration belongs in `lib/core/theme/app_theme.dart`; semantic color tokens belong in `app_colors.dart`. New UI code must consume these tokens or the active Material `ColorScheme`, never scattered hardcoded colors.
+- Flutter project baseline.
+- GetX, Dio, Logger, SQLite dependencies.
+- Clean Architecture directories.
+- Platform database factories.
+- Responsive utility.
+- Theme and semantic colors.
+- Shared snackbar utility.
+- GetX binding foundation.
+- Initial project documentation.
 
-## Dependency injection rule
+### Acceptance criteria
 
-Every shared service, repository, use case, and controller must be registered through a GetX `Bindings` class. Keep construction wiring out of `main.dart`; use constructor injection inside registered factories. Add feature-specific bindings when new features become independently navigable.
+- Android debug build succeeds.
+- Windows debug build succeeds.
+- Web/WASM build succeeds.
+- SQLite opens on supported targets.
+- Shared theme is consumed from `core/theme`.
+- Shared dependencies use GetX Bindings.
 
-## Widget reuse rule
+### Evidence
 
-Start with the smallest local helper. Extract to `lib/presentation/widgets/` only after a widget is reused across pages with the same API and styling. Avoid premature generic components.
+```text
+flutter analyze
+flutter test
+flutter build apk --debug
+flutter build windows --debug
+flutter build web --wasm
+```
+
+### Commit
+
+```text
+4508236 chore: establish application foundation
+```
+
+## CP1 — Local gateway management
+
+### Scope
+
+- Gateway model.
+- SQLite gateway CRUD.
+- Gateway repository and use cases.
+- Gateway list, form, and dashboard shell.
+- Single gateway session.
+- URL construction and local validation.
+- Long-press Edit/Delete actions.
+- Radio scheme selector.
+- Custom field labels.
+
+### Acceptance criteria
+
+- User adds a gateway record locally.
+- User edits a gateway record locally.
+- User deletes a gateway after confirmation.
+- User taps a gateway to open one active session.
+- User can return and select another gateway.
+- URL stores no scheme or `/api/v1` in `baseUrl`.
+- Empty state and error state provide next actions.
+- Gateway data survives app restart.
+
+### Evidence
+
+```text
+dart analyze
+flutter test
+```
+
+### Commit
+
+```text
+9d20b48 feat: add local gateway management
+```
+
+## CP2 — Gateway connectivity and validated save
+
+### Scope
+
+- Shared Dio client.
+- Request/response/error logging.
+- Safe token redaction.
+- `GET /health` validation.
+- Authenticated `GET /diagnostics` validation.
+- Timeout and HTTP error mapping.
+- Save only after API validation.
+
+### Acceptance criteria
+
+- Valid gateway saves after health and diagnostics succeed.
+- Invalid URL is rejected locally or with a clear network error.
+- Unreachable gateway is reported clearly.
+- Invalid token returns an authentication error.
+- Failed edit leaves the previous gateway record unchanged.
+- API token is absent from logs and displayed errors.
+- Duplicate save submission is prevented.
+
+### Evidence
+
+```text
+dart analyze
+flutter analyze
+flutter test
+flutter build apk --debug
+flutter build windows --debug
+flutter build web --wasm
+```
+
+Live evidence must include a valid gateway, invalid token, and unreachable gateway.
+
+### Commit
+
+```text
+94baed3 feat: add gateway health connectivity
+```
+
+## CP3 — Device management and Add Device flow
+
+### Scope
+
+- Device model and mapping.
+- Device repository/use cases/controller.
+- Device list and detail foundation.
+- Add Device page.
+- Discover from Network flow.
+- Add Manually flow.
+- Device create/update/delete.
+- Discovery candidate mapping.
+
+### Current implementation
+
+Device model, repository, use cases, controller, form, model test, and dashboard wiring are present in the working tree. CP3 is not passed until live verification is complete.
+
+### Acceptance criteria
+
+- `GET /devices` loads an empty and populated list.
+- `GET /devices/{id}` loads device detail.
+- `POST /discovery/scan` displays candidates without auto-saving.
+- User can select a candidate and review/edit the form.
+- A null discovery MAC can be completed manually.
+- Empty discovery results still expose Add Manually.
+- User can add a device manually.
+- `POST /devices` persists a valid device.
+- `PUT /devices/{id}` updates a device.
+- `DELETE /devices/{id}` removes a device after confirmation.
+- Validation errors and duplicate MAC conflicts are clear.
+- All device requests use the active gateway session.
+
+### Verification checklist
+
+```text
+[ ] flutter analyze
+[ ] flutter test
+[ ] live GET /devices
+[ ] live GET /devices/{id}
+[ ] live POST /discovery/scan with results
+[ ] live POST /discovery/scan with empty result
+[ ] add discovered device
+[ ] add manual device
+[ ] edit device
+[ ] delete device
+[ ] invalid device validation
+[ ] duplicate MAC conflict
+```
+
+### Commit after user approval
+
+```text
+feat: add gateway device management
+```
+
+## CP4 — Device status and wake actions
+
+### Scope
+
+- `GET /devices/{id}/status`.
+- `POST /devices/{id}/wake`.
+- Status badges and result details.
+- Wake confirmation.
+- Loading and duplicate-action prevention.
+- Latency and reason display.
+
+### Acceptance criteria
+
+- `ONLINE`, `OFFLINE`, and `UNKNOWN` are displayed correctly.
+- Previous device state remains if a refresh fails.
+- `PACKET_SENT` is explained as packet delivery, not proof of power-on.
+- Wake action cannot be double-submitted.
+- Errors are shown through GetX snackbar without token leakage.
+
+### Commit
+
+```text
+feat: add device status and wake actions
+```
+
+## CP5 — Diagnostics page
+
+### Scope
+
+- `GET /diagnostics` presentation.
+- Safe diagnostics sections.
+- Loading, empty, error, and refresh states.
+
+### Acceptance criteria
+
+- Safe gateway diagnostics are readable.
+- Token, credentials, raw commands, and sensitive identifiers are absent.
+- Refresh uses the active gateway.
+
+### Commit
+
+```text
+feat: add gateway diagnostics
+```
+
+## CP6 — Full API and platform verification
+
+### Endpoint matrix
+
+```text
+GET    /health
+GET    /diagnostics
+POST   /discovery/scan
+GET    /devices
+GET    /devices/{id}
+POST   /devices
+PUT    /devices/{id}
+DELETE /devices/{id}
+GET    /devices/{id}/status
+POST   /devices/{id}/wake
+```
+
+### Acceptance criteria
+
+- Every endpoint has success evidence.
+- `400`, `401`, `404`, `409`, timeout, offline, and malformed response behavior is checked.
+- Android, Windows, and Web/WASM builds succeed.
+- Responsive behavior is reviewed at mobile, tablet, and desktop widths.
+- Keyboard and semantic labels are reviewed on Windows/Web.
+- No token leakage is found in logs or notifications.
+
+### Commit
+
+```text
+test: verify gateway API workflows
+```
+
+## CP7 — Firebase authentication — post-MVP
+
+Start only after CP6 passes and the user connects the existing Firebase project.
+
+### Scope
+
+- Firebase project connection.
+- Email/password sign-in.
+- Google sign-in.
+- Logout.
+- Session restoration.
+- Auth error states.
+- Guest mode preservation.
+
+### Acceptance criteria
+
+- Guest can continue local-only usage.
+- Email/password login works.
+- Google login works on supported targets.
+- Logout clears authenticated UI state.
+- Session restoration does not block local gateway access.
+
+### Commit
+
+```text
+feat: add Firebase authentication
+```
+
+## CP8 — Firebase sync contract and Rules — post-MVP
+
+### Firestore path
+
+```text
+users/{uid}/gateways/{gatewayId}
+```
+
+### Document fields
+
+```text
+name
+scheme
+baseUrl
+apiToken
+ownerId
+createdAt
+updatedAt
+```
+
+### Rules requirements
+
+- Unauthenticated users cannot read or write gateway documents.
+- A user can access only their own `users/{uid}` path.
+- Create requires `ownerId == request.auth.uid`.
+- Update requires existing and new owner IDs to remain the authenticated UID.
+- Delete requires ownership.
+- `ownerId` cannot be changed by a client update.
+
+### Product security decision
+
+The token is plaintext in Firestore by explicit decision. Authentication and Rules control access; they do not provide encryption. Cloud Functions, KMS, encryption, and sync passphrases are out of scope unless this decision changes.
+
+### Commit
+
+```text
+docs: define Firebase gateway sync contract
+```
+
+## CP9 — Firebase gateway sync — post-MVP
+
+### Scope
+
+- Automatic sync on login/app start.
+- Manual refresh.
+- Upload local gateway records.
+- Download cloud gateway records.
+- SQLite/cloud merge.
+- Last-write-wins using `updatedAt`.
+- API token edits through Edit Gateway sync normally.
+
+### Acceptance criteria
+
+- New local gateway uploads for the authenticated user.
+- Cloud gateway appears on another authenticated device.
+- Gateway edits propagate.
+- Token edits propagate without logging the token.
+- Offline local usage remains available.
+- Conflicts resolve deterministically.
+- User data remains isolated by Rules.
+
+### Commit
+
+```text
+feat: sync gateway data with Firebase
+```
+
+## CP10 — Cross-device verification — post-MVP
+
+### Acceptance criteria
+
+- Device A login and gateway creation.
+- Device B login and gateway download.
+- Device A gateway edit and Device B refresh.
+- Device B token can authenticate to the gateway after sync.
+- User A cannot read User B data.
+- Logout behavior is correct.
+- Android, Windows, and Web/WASM are checked.
+
+### Commit
+
+```text
+test: verify cross-device gateway sync
+```
