@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'core/database/database_factory.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/bindings/app_binding.dart';
-import 'presentation/pages/gateway_list_page.dart';
+import 'presentation/pages/gateway/gateway_list_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,5 +19,6 @@ class MyApp extends StatelessWidget {
     theme: AppTheme.light,
     initialBinding: AppBinding(),
     home: const GatewayListPage(),
+    debugShowCheckedModeBanner: false,
   );
 }

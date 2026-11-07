@@ -25,7 +25,28 @@ The application targets Android, Windows, and Flutter Web/WASM. It supports loca
 | Windows | MVP | Desktop management and keyboard use. |
 | Web/WASM | MVP target | Requires browser-compatible packages and SQLite WASM assets. |
 
-## 4. Users and primary jobs
+## 4. Page and feature organization
+
+Each navigable page belongs to its feature folder. Pages from different features are never combined in one file.
+
+```text
+lib/presentation/pages/
+├── gateway/
+│   ├── gateway_list_page.dart
+│   ├── gateway_form_page.dart
+│   └── gateway_dashboard_page.dart
+├── device/
+│   ├── discovery_scan_page.dart
+│   └── device_add_edit_page.dart
+├── status/       reserved for status and wake pages
+├── diagnostics/  reserved for diagnostics pages
+├── settings/     reserved for settings pages
+└── auth/         reserved for authentication pages
+```
+
+File names and primary widgets use matching names. For example, `device_add_edit_page.dart` contains `DeviceAddEditPage`. New features add their own folder before adding navigable pages.
+
+## 5. Users and primary jobs
 
 ### Guest user
 
@@ -44,9 +65,9 @@ The user can:
 - Sync gateway records across devices.
 - Refresh cloud data manually or through automatic sync.
 
-## 5. MVP scope
+## 6. MVP scope
 
-### 5.1 Gateway management
+### 6.1 Gateway management
 
 The first screen is the Gateway List.
 
@@ -96,7 +117,7 @@ Gateway card behavior:
 - The compact `+` FAB opens Add Gateway.
 - Empty state includes a labelled Add Gateway action.
 
-### 5.2 Gateway session
+### 6.2 Gateway session
 
 Only one gateway is active in a session.
 
@@ -110,7 +131,7 @@ Gateway List
 
 There is no `isSelected` database field. The active gateway is held by the session controller. Restarting the app returns the user to the Gateway List.
 
-### 5.3 Device management
+### 6.3 Device management
 
 Required API operations:
 
@@ -141,14 +162,15 @@ lastWolResult
 lastWolAt
 ```
 
-### 5.4 Add Device
+### 6.4 Add Device
 
-Add Device has two paths:
+The dashboard add action opens a dedicated Discovery Scan page. Add Device has two paths:
 
 ```text
-Add Device
-├── Discover from Network
-└── Add Manually
+Gateway Dashboard
+→ Discovery Scan
+   ├── select result → DeviceAddEditPage
+   └── footer Add manually → DeviceAddEditPage
 ```
 
 #### Discover from Network
@@ -157,7 +179,7 @@ Add Device
 POST /discovery/scan
 → show scan results
 → user selects a result
-→ populate the device form
+→ open DeviceAddEditPage with available values
 → user reviews or edits fields
 → POST /devices
 ```
@@ -167,13 +189,13 @@ Rules:
 - Discovery never saves a device automatically.
 - `macAddress` may be `null` in discovery results.
 - Required fields must be complete before saving.
-- Empty discovery results still show Add Manually.
+- Empty discovery results still show `Add manually` in the scan page footer.
 - A device missed by discovery can always be entered manually.
 - Already registered IP addresses are not expected in discovery results.
 
 #### Add Manually
 
-The form accepts:
+`DeviceAddEditPage` accepts:
 
 - Name.
 - IP address.
@@ -183,7 +205,11 @@ The form accepts:
 - Status check method.
 - Status check port.
 
-### 5.5 Device actions
+### 6.5 Device edit
+
+Long press a device on the Gateway Dashboard, then choose Edit. This opens `DeviceAddEditPage` with the existing values. Edit has no discovery action; discovery is available only from `DiscoveryScanPage`.
+
+### 6.6 Device actions
 
 | Method | Path | Product behavior |
 |---|---|---|
@@ -198,7 +224,7 @@ Status values:
 
 `PACKET_SENT` means the gateway sent the packet locally without an error. It does not prove that the target computer powered on.
 
-### 5.6 Diagnostics
+### 6.7 Diagnostics
 
 Required operation:
 
@@ -208,7 +234,7 @@ GET /diagnostics
 
 Diagnostics may show safe gateway information such as application version, runtime mode, interface, tunnel, service state, device information, and battery information. Secrets, raw shell output, credentials, and sensitive identifiers must not be displayed.
 
-## 6. API and error requirements
+## 7. API and error requirements
 
 All authenticated API requests use:
 
@@ -233,7 +259,7 @@ Known error handling:
 
 The API error envelope is defined in `API_DOC.md` and must be mapped without exposing sensitive fields.
 
-## 7. Data and security decisions
+## 8. Data and security decisions
 
 ### Local storage
 
@@ -257,7 +283,7 @@ Controls:
 
 This is access control, not encryption. A compromised authenticated account can expose that account's token; the user can replace the token through Edit Gateway after rotating it in the gateway application.
 
-## 8. Responsive and accessibility requirements
+## 9. Responsive and accessibility requirements
 
 - Use native Flutter layout primitives only.
 - Mobile breakpoint: below `600` logical pixels.
@@ -269,7 +295,7 @@ This is access control, not encryption. A compromised authenticated account can 
 - Loading controls prevent duplicate submissions.
 - Empty and error states provide a clear next action.
 
-## 9. Non-goals
+## 10. Non-goals
 
 MVP does not include:
 
@@ -282,7 +308,7 @@ MVP does not include:
 - Shell execution or arbitrary process execution.
 - Automatic persistence of discovery results.
 
-## 10. Success criteria
+## 11. Success criteria
 
 MVP is successful when a user can:
 

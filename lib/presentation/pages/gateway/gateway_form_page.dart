@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/errors/gateway_failure.dart';
-import '../../core/ui/app_snackbar.dart';
-import '../../data/models/gateway.dart';
-import '../controllers/gateway_controller.dart';
+import '../../../core/errors/gateway_failure.dart';
+import '../../../core/ui/app_snackbar.dart';
+import '../../../data/models/gateway.dart';
+import '../../controllers/gateway_controller.dart';
 
 class GatewayFormPage extends StatefulWidget {
   const GatewayFormPage({super.key, this.gateway});

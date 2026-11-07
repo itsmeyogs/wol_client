@@ -29,10 +29,13 @@ abstract final class AppTheme {
           side: const BorderSide(color: AppColors.border),
         ),
       ),
-      inputDecorationTheme: const InputDecorationTheme(
+      inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(),
         filled: true,
         fillColor: AppColors.surface,
+        hintStyle: TextStyle(
+          color: Color.fromRGBO(55, 71, 79, 0.45),
+        ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,

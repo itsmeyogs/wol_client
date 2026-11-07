@@ -9,6 +9,10 @@
 - Every checkpoint ends with analyzer, test, and relevant build/API evidence.
 - Live gateway evidence is separate from local/mock evidence.
 - API tokens never appear in logs, test output, screenshots, or error notifications.
+- Every navigable page belongs to a feature folder under `lib/presentation/pages/`.
+- One navigable page gets one file and one primary page widget.
+- New page files never go directly in the `pages/` root.
+- Feature page names use `<feature>_<action>_page.dart` and matching `<Feature><Action>Page`.
 
 ## Status summary
 
@@ -17,7 +21,7 @@
 | CP0 | Application foundation | Passed | `4508236 chore: establish application foundation` |
 | CP1 | Local gateway management | Passed | `9d20b48 feat: add local gateway management` |
 | CP2 | Gateway connectivity and validated save | Passed | `94baed3 feat: add gateway health connectivity` |
-| CP3 | Device management and Add Device flow | Implemented, not verified | Pending |
+| CP3 | Device management and Add Device flow | Passed | Pending |
 | CP4 | Device status and wake actions | Pending | Pending |
 | CP5 | Diagnostics page | Pending | Pending |
 | CP6 | Full API and platform verification | Pending | Pending |
@@ -151,24 +155,30 @@ Live evidence must include a valid gateway, invalid token, and unreachable gatew
 - Device model and mapping.
 - Device repository/use cases/controller.
 - Device list and detail foundation.
-- Add Device page.
+- `lib/presentation/pages/gateway/gateway_dashboard_page.dart` owns the device list entry point.
+- `lib/presentation/pages/device/discovery_scan_page.dart` owns network discovery.
+- `lib/presentation/pages/device/device_add_edit_page.dart` owns manual add, discovery-result review, and edit.
+- `DiscoveryScanPage`.
+- `DeviceAddEditPage` for manual add, discovery candidate add, and edit.
 - Discover from Network flow.
-- Add Manually flow.
+- Add Manually flow from the discovery page footer.
 - Device create/update/delete.
 - Discovery candidate mapping.
 
 ### Current implementation
 
-Device model, repository, use cases, controller, form, model test, and dashboard wiring are present in the working tree. CP3 is not passed until live verification is complete.
+Device model, repository, use cases, controller, `DiscoveryScanPage`, `DeviceAddEditPage`, model test, and dashboard wiring are present in the working tree. User approved CP3 as passed. Live gateway evidence remains a separate follow-up if required.
 
 ### Acceptance criteria
 
 - `GET /devices` loads an empty and populated list.
 - `GET /devices/{id}` loads device detail.
 - `POST /discovery/scan` displays candidates without auto-saving.
-- User can select a candidate and review/edit the form.
+- Dashboard `+` opens `DiscoveryScanPage`.
+- User can select a candidate and review/edit it in `DeviceAddEditPage`.
 - A null discovery MAC can be completed manually.
-- Empty discovery results still expose Add Manually.
+- Empty discovery results still expose `Add manually` in the discovery page footer.
+- Edit opens `DeviceAddEditPage` without discovery controls.
 - User can add a device manually.
 - `POST /devices` persists a valid device.
 - `PUT /devices/{id}` updates a device.
@@ -205,6 +215,8 @@ feat: add gateway device management
 
 - `GET /devices/{id}/status`.
 - `POST /devices/{id}/wake`.
+- Pages under `lib/presentation/pages/status/`.
+- Separate status and wake page files when both become independently navigable.
 - Status badges and result details.
 - Wake confirmation.
 - Loading and duplicate-action prevention.
@@ -229,6 +241,7 @@ feat: add device status and wake actions
 ### Scope
 
 - `GET /diagnostics` presentation.
+- `lib/presentation/pages/diagnostics/diagnostics_page.dart`.
 - Safe diagnostics sections.
 - Loading, empty, error, and refresh states.
 
@@ -269,6 +282,16 @@ POST   /devices/{id}/wake
 - Responsive behavior is reviewed at mobile, tablet, and desktop widths.
 - Keyboard and semantic labels are reviewed on Windows/Web.
 - No token leakage is found in logs or notifications.
+
+### Page-structure verification
+
+```text
+[ ] every navigable page is inside a feature folder
+[ ] every page file has one primary page widget
+[ ] file and widget names match
+[ ] no page is duplicated in multiple feature folders
+[ ] docs paths match repository paths
+```
 
 ### Commit
 

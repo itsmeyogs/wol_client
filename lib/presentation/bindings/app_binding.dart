@@ -8,6 +8,10 @@ import '../../domain/repositories/gateway_repository.dart';
 import '../../domain/usecases/gateway_usecases.dart';
 import '../controllers/gateway_controller.dart';
 import '../controllers/gateway_session_controller.dart';
+import '../../data/repositories/device_repository_impl.dart';
+import '../../domain/repositories/device_repository.dart';
+import '../../domain/usecases/device_usecases.dart';
+import '../controllers/device_controller.dart';
 
 class AppBinding extends Bindings {
   @override
@@ -47,6 +51,36 @@ class AppBinding extends Bindings {
         Get.find<GetGateways>(),
         Get.find<SaveGateway>(),
         Get.find<DeleteGateway>(),
+      ),
+      fenix: true,
+    );
+    Get.lazyPut<DeviceRepository>(
+      () => DeviceRepositoryImpl(client: Get.find<DioClient>()),
+      fenix: true,
+    );
+    Get.lazyPut<GetDevices>(
+      () => GetDevices(Get.find<DeviceRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut<SaveDevice>(
+      () => SaveDevice(Get.find<DeviceRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut<DeleteDevice>(
+      () => DeleteDevice(Get.find<DeviceRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut<DiscoverDevices>(
+      () => DiscoverDevices(Get.find<DeviceRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut<DeviceController>(
+      () => DeviceController(
+        Get.find<GetDevices>(),
+        Get.find<SaveDevice>(),
+        Get.find<DeleteDevice>(),
+        Get.find<DiscoverDevices>(),
+        Get.find<GatewaySessionController>(),
       ),
       fenix: true,
     );

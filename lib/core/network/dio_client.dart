@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../errors/gateway_failure.dart';
 import '../logging/app_logger.dart';
 import '../../data/models/gateway.dart';
+import '../../data/models/device.dart';
 
 class DioClient {
   DioClient._() {
@@ -66,8 +67,81 @@ class DioClient {
     }
   }
 
+  Future<List<Device>> getDevices(Gateway gateway) async {
+    final response = await _request(
+      () => dio.get('${gateway.apiBaseUrl}/devices', options: _auth(gateway)),
+    );
+    return (response.data as List<dynamic>)
+        .map((item) => Device.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Device> saveDevice(Gateway gateway, Device device) async {
+    final response = await _request(() {
+      final path = device.id == null
+          ? '${gateway.apiBaseUrl}/devices'
+          : '${gateway.apiBaseUrl}/devices/${device.id}';
+      return device.id == null
+          ? dio.post(path, data: device.toJson(), options: _auth(gateway))
+          : dio.put(path, data: device.toJson(), options: _auth(gateway));
+    });
+    return Device.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteDevice(Gateway gateway, int id) async {
+    await _request(
+      () => dio.delete(
+        '${gateway.apiBaseUrl}/devices/$id',
+        options: _auth(gateway),
+      ),
+    );
+  }
+
+  Future<List<DiscoveryDevice>> discoverDevices(Gateway gateway) async {
+    final response = await _request(
+      () => dio.post(
+        '${gateway.apiBaseUrl}/discovery/scan',
+        options: _auth(gateway),
+      ),
+    );
+    final devices =
+        (response.data as Map<String, dynamic>)['devices'] as List<dynamic>?;
+    return (devices ?? const [])
+        .map((item) => DiscoveryDevice.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Options _auth(Gateway gateway) =>
+      Options(headers: {'Authorization': 'Bearer ${gateway.apiToken}'});
+
+  Future<Response<dynamic>> _request(
+    Future<Response<dynamic>> Function() request,
+  ) async {
+    try {
+      return await request();
+    } on DioException catch (error) {
+      throw _mapError(error, healthCheck: false);
+    }
+  }
+
   GatewayFailure _mapError(DioException error, {required bool healthCheck}) {
     final status = error.response?.statusCode;
+    final body = error.response?.data;
+    final apiCode = body is Map<String, dynamic> && body['error'] is Map
+        ? (body['error'] as Map)['code'] as String?
+        : null;
+    if (apiCode == 'duplicate_device') {
+      return GatewayFailure(
+        'A device with this MAC address already exists.',
+        code: apiCode,
+      );
+    }
+    if (apiCode == 'validation_failed') {
+      return GatewayFailure('Device details were rejected.', code: apiCode);
+    }
+    if (apiCode == 'device_not_found') {
+      return GatewayFailure('Device was not found.', code: apiCode);
+    }
     if (status == 401) {
       return const GatewayFailure(
         'API token is invalid.',

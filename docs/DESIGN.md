@@ -25,9 +25,39 @@ lib/
 │   ├── bindings/
 │   ├── controllers/
 │   ├── pages/
+│   │   ├── gateway/
+│   │   ├── device/
+│   │   ├── status/
+│   │   ├── diagnostics/
+│   │   ├── settings/
+│   │   └── auth/
 │   └── widgets/
 └── main.dart
 ```
+
+Page organization rules:
+
+- Each feature owns a folder under `lib/presentation/pages/`.
+- Each navigable page has one file and one primary page widget.
+- Keep feature pages out of the `pages/` root.
+- Name files with the feature and page action, for example `device_add_edit_page.dart` / `DeviceAddEditPage`.
+- Do not combine pages from different features in one file.
+- Add a feature folder only when that feature gets its first navigable page.
+
+Current page ownership:
+
+```text
+lib/presentation/pages/gateway/
+├── gateway_list_page.dart       GatewayListPage
+├── gateway_form_page.dart       GatewayFormPage
+└── gateway_dashboard_page.dart  GatewayDashboardPage
+
+lib/presentation/pages/device/
+├── discovery_scan_page.dart     DiscoveryScanPage
+└── device_add_edit_page.dart    DeviceAddEditPage
+```
+
+Reserved future page folders: `status/`, `diagnostics/`, `settings/`, `auth/`.
 
 Dependency direction:
 
@@ -171,18 +201,56 @@ device wake
 ## 9. Add Device design
 
 ```text
-DeviceListPage
-  → AddDevicePage
-      ├── scan network
+GatewayDashboardPage
+  → DiscoveryScanPage
       ├── select discovery candidate
-      ├── review/edit form
-      └── manual form
-  → DeviceRepository.create
+      │     → DeviceAddEditPage(discovery: candidate)
+      └── footer Add manually
+            → DeviceAddEditPage()
+
+GatewayDashboardPage long press device
+  → DeviceAddEditPage(device: existing)
+
+DeviceAddEditPage
+  → DeviceRepository.save
 ```
 
-Discovery candidates may have a null MAC address. The form must allow completion before submitting the device create request. Empty discovery results must preserve a usable manual path.
+Page files remain separate by responsibility:
 
-## 10. Theme and colors
+```text
+lib/presentation/pages/device/discovery_scan_page.dart
+  DiscoveryScanPage
+
+lib/presentation/pages/device/device_add_edit_page.dart
+  DeviceAddEditPage
+```
+
+`DeviceAddEditPage` handles both add and edit. It is named after the feature action, not `form`, to avoid confusing a reusable form widget with a navigable page. Edit opens only this page; discovery controls exist only on `DiscoveryScanPage`.
+
+Discovery candidates may have a null MAC address. `DeviceAddEditPage` must allow completion before submitting the device create request. Empty discovery results must preserve a usable manual path through the scan page footer.
+
+## 10. Future feature page ownership
+
+New page flows follow the same structure:
+
+```text
+lib/presentation/pages/status/
+  device_status_page.dart
+  device_wake_page.dart
+
+lib/presentation/pages/diagnostics/
+  diagnostics_page.dart
+
+lib/presentation/pages/settings/
+  settings_page.dart
+
+lib/presentation/pages/auth/
+  sign_in_page.dart
+```
+
+Exact names may change with feature design. Folder-per-feature and one-page-per-file rules remain mandatory.
+
+## 11. Theme and colors
 
 Theme tokens live in:
 
@@ -199,7 +267,7 @@ Rules:
 - No scattered hex colors in pages, widgets, controllers, or utilities.
 - Current visual direction: light framed sheet, flat surfaces, quiet borders, one teal action color, no gradients, and no resting shadows.
 
-## 11. Responsive design
+## 12. Responsive design
 
 Use `MediaQuery`, `LayoutBuilder`, `ConstrainedBox`, `Expanded`, `Flexible`, and `Wrap`.
 
@@ -211,7 +279,7 @@ desktop: >= 1024
 
 Wide forms are constrained. Phone content uses tighter horizontal padding. No responsive package is required.
 
-## 12. Widget extraction
+## 13. Widget extraction
 
 Start with the smallest local helper. A repeated widget used only within one page remains private to that page. Extract a widget to `lib/presentation/widgets/` only when multiple pages reuse the same behavior and visual contract.
 
@@ -224,7 +292,7 @@ class AppTextField extends StatelessWidget
 
 Do not create generic abstractions for one caller.
 
-## 13. Form and feedback conventions
+## 14. Form and feedback conventions
 
 - Use a custom `Text` label above each field.
 - Do not use `InputDecoration.labelText`.
@@ -234,7 +302,7 @@ Do not create generic abstractions for one caller.
 - Disable submit controls during async saves.
 - Confirm destructive actions.
 
-## 14. Firebase sync design — post-MVP
+## 15. Firebase sync design — post-MVP
 
 Firebase is not required for guest MVP usage. It begins after the gateway API workflow is verified.
 
@@ -297,7 +365,7 @@ Firebase login/app start
 
 The existing Firebase project is connected only when the sync checkpoint begins. No Cloud Functions, KMS, encryption service, or sync passphrase is required under the current product decision.
 
-## 15. Testing strategy
+## 16. Testing strategy
 
 ### Unit tests
 

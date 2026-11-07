@@ -1,0 +1,136 @@
+import 'package:get/get.dart';
+import '../../core/errors/gateway_failure.dart';
+import '../../data/models/device.dart';
+import '../../domain/usecases/device_usecases.dart';
+import 'gateway_session_controller.dart';
+
+class DeviceController extends GetxController {
+  DeviceController(
+    this._getDevices,
+    this._saveDevice,
+    this._deleteDevice,
+    this._discoverDevices,
+    this._session,
+  );
+  final GetDevices _getDevices;
+  final SaveDevice _saveDevice;
+  final DeleteDevice _deleteDevice;
+  final DiscoverDevices _discoverDevices;
+  final GatewaySessionController _session;
+  final devices = <Device>[].obs;
+  final discovered = <DiscoveryDevice>[].obs;
+  final isLoading = false.obs;
+  final isSaving = false.obs;
+  final isDiscovering = false.obs;
+  final error = RxnString();
+  final discoveryError = RxnString();
+
+  Future<void> load() async {
+    final gateway = _session.activeGateway.value;
+    if (gateway == null) return;
+    isLoading.value = true;
+    error.value = null;
+    try {
+      devices.assignAll(await _getDevices(gateway));
+    } on GatewayFailure catch (failure) {
+      error.value = failure.message;
+    } catch (_) {
+      error.value = 'Devices could not be loaded.';
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> saveDevice({
+    int? id,
+    required String name,
+    required String ipAddress,
+    required String macAddress,
+    required String broadcastAddress,
+    required String wolPort,
+    required String statusCheckMethod,
+    required String statusCheckPort,
+  }) async {
+    final gateway = _session.activeGateway.value;
+    if (gateway == null) throw const GatewayFailure('No gateway is selected.');
+    final cleanName = name.trim();
+    final cleanIp = ipAddress.trim();
+    final cleanMac = macAddress.trim().toUpperCase();
+    final cleanBroadcast = broadcastAddress.trim();
+    if (cleanName.isEmpty) {
+      throw const GatewayFailure('Device name is required.');
+    }
+    if (!_validIpv4(cleanIp)) {
+      throw const GatewayFailure('Enter a valid IPv4 address.');
+    }
+    if (!_validMac(cleanMac)) {
+      throw const GatewayFailure('Enter a valid MAC address.');
+    }
+    if (!_validIpv4(cleanBroadcast)) {
+      throw const GatewayFailure('Enter a valid broadcast address.');
+    }
+    final parsedWolPort = int.tryParse(wolPort);
+    final parsedStatusPort = int.tryParse(statusCheckPort);
+    if (!_validPort(parsedWolPort) || !_validPort(parsedStatusPort)) {
+      throw const GatewayFailure('Ports must be between 1 and 65535.');
+    }
+    isSaving.value = true;
+    try {
+      await _saveDevice(
+        gateway,
+        Device(
+          id: id,
+          name: cleanName,
+          ipAddress: cleanIp,
+          macAddress: cleanMac,
+          broadcastAddress: cleanBroadcast,
+          wolPort: parsedWolPort!,
+          statusCheckMethod: statusCheckMethod,
+          statusCheckPort: parsedStatusPort!,
+        ),
+      );
+      await load();
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
+  Future<void> deleteDevice(Device device) async {
+    final gateway = _session.activeGateway.value;
+    if (gateway == null || device.id == null) return;
+    await _deleteDevice(gateway, device.id!);
+    await load();
+  }
+
+  Future<void> discover() async {
+    final gateway = _session.activeGateway.value;
+    if (gateway == null) return;
+    isDiscovering.value = true;
+    discoveryError.value = null;
+    discovered.clear();
+    try {
+      discovered.assignAll(await _discoverDevices(gateway));
+    } on GatewayFailure catch (failure) {
+      discoveryError.value = failure.message;
+    } catch (_) {
+      discoveryError.value = 'Device discovery failed.';
+    } finally {
+      isDiscovering.value = false;
+    }
+  }
+
+  bool _validPort(int? value) => value != null && value >= 1 && value <= 65535;
+  bool _validMac(String value) =>
+      RegExp(r'^([0-9A-F]{2}:){5}[0-9A-F]{2}$').hasMatch(value);
+  bool _validIpv4(String value) {
+    final parts = value.split('.');
+    return parts.length == 4 &&
+        parts.every((part) {
+          final number = int.tryParse(part);
+          return number != null &&
+              number >= 0 &&
+              number <= 255 &&
+              (part == '0' || !part.startsWith('0'));
+        });
+  }
+}

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/responsive/app_responsive.dart';
-import '../../core/ui/app_snackbar.dart';
-import '../../core/theme/app_colors.dart';
-import '../../data/models/gateway.dart';
-import '../controllers/gateway_controller.dart';
-import '../controllers/gateway_session_controller.dart';
+import '../../../core/responsive/app_responsive.dart';
+import '../../../core/ui/app_snackbar.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../data/models/gateway.dart';
+import '../../controllers/gateway_controller.dart';
+import '../../controllers/gateway_session_controller.dart';
 import 'gateway_dashboard_page.dart';
 import 'gateway_form_page.dart';
 
