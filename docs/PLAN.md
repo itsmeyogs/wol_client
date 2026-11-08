@@ -23,7 +23,7 @@
 | CP2 | Gateway connectivity and validated save | Passed | `94baed3 feat: add gateway health connectivity` |
 | CP3 | Device management and Add Device flow | Passed | Pending |
 | CP4 | Device status and wake actions | Pending | Pending |
-| CP5 | Diagnostics page | Pending | Pending |
+| CP5 | Diagnostics page | Passed | `feat: add gateway diagnostics` |
 | CP6 | Full API and platform verification | Pending | Pending |
 | CP7 | Firebase authentication | Post-MVP | Pending |
 | CP8 | Firebase sync contract and Rules | Post-MVP | Pending |
@@ -250,6 +250,15 @@ feat: add device status and wake actions
 - Safe gateway diagnostics are readable.
 - Token, credentials, raw commands, and sensitive identifiers are absent.
 - Refresh uses the active gateway.
+
+### Verification
+
+```text
+dart analyze
+flutter analyze
+flutter test
+git diff --check
+```
 
 ### Commit
 

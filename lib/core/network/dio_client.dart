@@ -3,6 +3,7 @@ import '../errors/gateway_failure.dart';
 import '../logging/app_logger.dart';
 import '../../data/models/gateway.dart';
 import '../../data/models/device.dart';
+import '../../data/models/gateway_diagnostics.dart';
 
 class DioClient {
   DioClient._() {
@@ -65,6 +66,21 @@ class DioClient {
     } on DioException catch (error) {
       throw _mapError(error, healthCheck: false);
     }
+  }
+
+  Future<GatewayDiagnostics> getDiagnostics(Gateway gateway) async {
+    final response = await _request(
+      () =>
+          dio.get('${gateway.apiBaseUrl}/diagnostics', options: _auth(gateway)),
+    );
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw const GatewayFailure(
+        'Gateway diagnostics response is invalid.',
+        code: 'invalid_api',
+      );
+    }
+    return GatewayDiagnostics.fromJson(data);
   }
 
   Future<List<Device>> getDevices(Gateway gateway) async {

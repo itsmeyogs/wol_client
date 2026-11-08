@@ -8,6 +8,7 @@ import '../../controllers/device_controller.dart';
 import '../../controllers/gateway_session_controller.dart';
 import '../device/device_detail_page.dart';
 import '../device/discovery_scan_page.dart';
+import '../diagnostics/diagnostics_page.dart';
 
 class GatewayDashboardPage extends StatefulWidget {
   const GatewayDashboardPage({super.key});
@@ -88,7 +89,16 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
     final gateway = Get.find<GatewaySessionController>().activeGateway.value;
     final padding = AppResponsive.horizontalPadding(context);
     return Scaffold(
-      appBar: AppBar(title: Text(gateway?.name ?? 'Gateway')),
+      appBar: AppBar(
+        title: Text(gateway?.name ?? 'Gateway'),
+        actions: [
+          IconButton(
+            onPressed: () => Get.to(() => const DiagnosticsPage()),
+            tooltip: 'Gateway diagnostics',
+            icon: const Icon(Icons.monitor_heart_outlined),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _add,
         tooltip: 'Add device',

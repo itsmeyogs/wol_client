@@ -12,6 +12,10 @@ import '../../data/repositories/device_repository_impl.dart';
 import '../../domain/repositories/device_repository.dart';
 import '../../domain/usecases/device_usecases.dart';
 import '../controllers/device_controller.dart';
+import '../../data/repositories/diagnostics_repository_impl.dart';
+import '../../domain/repositories/diagnostics_repository.dart';
+import '../../domain/usecases/diagnostics_usecases.dart';
+import '../controllers/diagnostics_controller.dart';
 
 class AppBinding extends Bindings {
   @override
@@ -95,6 +99,21 @@ class AppBinding extends Bindings {
         Get.find<DiscoverDevices>(),
         Get.find<CheckDeviceStatus>(),
         Get.find<WakeDevice>(),
+        Get.find<GatewaySessionController>(),
+      ),
+      fenix: true,
+    );
+    Get.lazyPut<DiagnosticsRepository>(
+      () => DiagnosticsRepositoryImpl(client: Get.find<DioClient>()),
+      fenix: true,
+    );
+    Get.lazyPut<GetDiagnostics>(
+      () => GetDiagnostics(Get.find<DiagnosticsRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut<DiagnosticsController>(
+      () => DiagnosticsController(
+        Get.find<GetDiagnostics>(),
         Get.find<GatewaySessionController>(),
       ),
       fenix: true,
