@@ -24,7 +24,7 @@
 | CP3 | Device management and Add Device flow | Passed | Pending |
 | CP4 | Device status and wake actions | Pending | Pending |
 | CP5 | Diagnostics page | Passed | `feat: add gateway diagnostics` |
-| CP6 | Full API and platform verification | Pending | Pending |
+| CP6 | Full API and platform verification | Passed | Pending |
 | CP7 | Firebase authentication | Post-MVP | Pending |
 | CP8 | Firebase sync contract and Rules | Post-MVP | Pending |
 | CP9 | Firebase gateway sync | Post-MVP | Pending |
