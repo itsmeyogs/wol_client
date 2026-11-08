@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../core/theme/app_colors.dart';
@@ -35,9 +36,23 @@ class GatewayListPage extends GetView<GatewayController> {
       ),
     );
     if (confirmed == true) {
-      await controller.deleteGateway(gateway);
-      AppSnackbar.success('Gateway deleted.');
+      try {
+        await controller.deleteGateway(gateway);
+        AppSnackbar.success('Gateway deleted.');
+      } on GatewayFailure catch (failure) {
+        AppSnackbar.error(failure.message);
+      } catch (_) {
+        AppSnackbar.error('Gateway could not be deleted.');
+      }
     }
+  }
+
+  Future<void> _form(Gateway? gateway) async {
+    final result = await Get.to<String>(
+      () => GatewayFormPage(gateway: gateway),
+    );
+    if (result == 'added') AppSnackbar.success('Gateway added.');
+    if (result == 'updated') AppSnackbar.success('Gateway updated.');
   }
 
   Future<void> _showActions(BuildContext context, Gateway gateway) async {
@@ -72,7 +87,7 @@ class GatewayListPage extends GetView<GatewayController> {
     if (!context.mounted) return;
     switch (action) {
       case _GatewayAction.edit:
-        Get.to(() => GatewayFormPage(gateway: gateway));
+        _form(gateway);
       case _GatewayAction.delete:
         _delete(context, gateway);
       case null:
@@ -86,7 +101,7 @@ class GatewayListPage extends GetView<GatewayController> {
     return Scaffold(
       appBar: AppBar(title: const Text('WoL gateways')),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Get.to(() => const GatewayFormPage()),
+        onPressed: () => _form(null),
         tooltip: 'Add gateway',
         child: const Icon(Icons.add),
       ),
@@ -100,7 +115,9 @@ class GatewayListPage extends GetView<GatewayController> {
             onRetry: controller.load,
           );
         }
-        if (controller.gateways.isEmpty) return _EmptyGateways();
+        if (controller.gateways.isEmpty) {
+          return _EmptyGateways(onAdd: () => _form(null));
+        }
         return RefreshIndicator(
           onRefresh: controller.load,
           child: ListView.separated(
@@ -186,6 +203,10 @@ class _MessageState extends StatelessWidget {
 }
 
 class _EmptyGateways extends StatelessWidget {
+  const _EmptyGateways({required this.onAdd});
+
+  final VoidCallback onAdd;
+
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
@@ -214,7 +235,7 @@ class _EmptyGateways extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () => Get.to(() => const GatewayFormPage()),
+              onPressed: onAdd,
               icon: const Icon(Icons.add),
               label: const Text('Add gateway'),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter/services.dart';
 import '../../../core/errors/gateway_failure.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
@@ -63,6 +64,7 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
 
   Future<void> _save() async {
     final controller = Get.find<DeviceController>();
+    final edit = widget.device != null;
     try {
       await controller.saveDevice(
         id: widget.device?.id,
@@ -74,7 +76,7 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
         statusCheckMethod: _method,
         statusCheckPort: _statusPort.text,
       );
-      if (mounted) Get.back(result: true);
+      if (mounted) Get.back(result: edit ? 'updated' : 'added');
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
     } catch (_) {
@@ -95,9 +97,14 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
             children: [
               _field('Name', _name, 'Office PC'),
-              _field('IP address', _ip, '192.168.1.20'),
+              _field('IP address', _ip, '192.168.1.20', decimal: true),
               _field('MAC address', _mac, 'AA:BB:CC:DD:EE:FF'),
-              _field('Broadcast address', _broadcast, '255.255.255.255'),
+              _field(
+                'Broadcast address',
+                _broadcast,
+                '255.255.255.255',
+                decimal: true,
+              ),
               _field('WoL port', _wolPort, '9', numeric: true),
               const SizedBox(height: 4),
               Text(
@@ -142,6 +149,7 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
     TextEditingController controller,
     String hint, {
     bool numeric = false,
+    bool decimal = false,
   }) => Padding(
     padding: const EdgeInsets.only(top: 16),
     child: Column(
@@ -151,7 +159,14 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          keyboardType: numeric ? TextInputType.number : TextInputType.text,
+          keyboardType: numeric || decimal
+              ? TextInputType.numberWithOptions(decimal: decimal)
+              : TextInputType.text,
+          inputFormatters: numeric
+              ? [FilteringTextInputFormatter.digitsOnly]
+              : decimal
+              ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]
+              : null,
           decoration: InputDecoration(hintText: hint),
         ),
       ],

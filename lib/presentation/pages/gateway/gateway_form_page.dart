@@ -49,7 +49,9 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
         apiToken: _token.text,
         createdAt: widget.gateway?.createdAt,
       );
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop(widget.gateway == null ? 'added' : 'updated');
+      }
     } on GatewayFailure catch (failure) {
       if (mounted) _showError(failure.message);
     } catch (_) {

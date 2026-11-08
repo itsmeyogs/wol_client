@@ -76,6 +76,14 @@ class DioClient {
         .toList();
   }
 
+  Future<Device> getDevice(Gateway gateway, int id) async {
+    final response = await _request(
+      () =>
+          dio.get('${gateway.apiBaseUrl}/devices/$id', options: _auth(gateway)),
+    );
+    return Device.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<Device> saveDevice(Gateway gateway, Device device) async {
     final response = await _request(() {
       final path = device.id == null
@@ -111,6 +119,26 @@ class DioClient {
         .toList();
   }
 
+  Future<DeviceStatusResult> getDeviceStatus(Gateway gateway, int id) async {
+    final response = await _request(
+      () => dio.get(
+        '${gateway.apiBaseUrl}/devices/$id/status',
+        options: _auth(gateway),
+      ),
+    );
+    return DeviceStatusResult.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<DeviceWakeResult> wakeDevice(Gateway gateway, int id) async {
+    final response = await _request(
+      () => dio.post(
+        '${gateway.apiBaseUrl}/devices/$id/wake',
+        options: _auth(gateway),
+      ),
+    );
+    return DeviceWakeResult.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Options _auth(Gateway gateway) =>
       Options(headers: {'Authorization': 'Bearer ${gateway.apiToken}'});
 
@@ -141,6 +169,12 @@ class DioClient {
     }
     if (apiCode == 'device_not_found') {
       return GatewayFailure('Device was not found.', code: apiCode);
+    }
+    if (apiCode == 'bad_request') {
+      return const GatewayFailure(
+        'Gateway rejected the device action.',
+        code: 'bad_request',
+      );
     }
     if (status == 401) {
       return const GatewayFailure(

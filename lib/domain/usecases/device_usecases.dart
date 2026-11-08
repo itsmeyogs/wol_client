@@ -8,6 +8,13 @@ class GetDevices {
   Future<List<Device>> call(Gateway gateway) => _repository.getAll(gateway);
 }
 
+class GetDevice {
+  const GetDevice(this._repository);
+  final DeviceRepository _repository;
+  Future<Device> call(Gateway gateway, int id) =>
+      _repository.getById(gateway, id);
+}
+
 class SaveDevice {
   const SaveDevice(this._repository);
   final DeviceRepository _repository;
@@ -26,4 +33,18 @@ class DiscoverDevices {
   final DeviceRepository _repository;
   Future<List<DiscoveryDevice>> call(Gateway gateway) =>
       _repository.discover(gateway);
+}
+
+class CheckDeviceStatus {
+  const CheckDeviceStatus(this._repository);
+  final DeviceRepository _repository;
+  Future<DeviceStatusResult> call(Gateway gateway, int id) =>
+      _repository.getStatus(gateway, id);
+}
+
+class WakeDevice {
+  const WakeDevice(this._repository);
+  final DeviceRepository _repository;
+  Future<DeviceWakeResult> call(Gateway gateway, int id) =>
+      _repository.wake(gateway, id);
 }

@@ -31,6 +31,30 @@ class Device {
   final String lastWolResult;
   final DateTime? lastWolAt;
 
+  Device copyWith({
+    String? status,
+    DateTime? lastCheckAt,
+    int? lastCheckLatencyMs,
+    String? lastCheckReason,
+    String? lastWolResult,
+    DateTime? lastWolAt,
+  }) => Device(
+    id: id,
+    name: name,
+    ipAddress: ipAddress,
+    macAddress: macAddress,
+    broadcastAddress: broadcastAddress,
+    wolPort: wolPort,
+    statusCheckMethod: statusCheckMethod,
+    statusCheckPort: statusCheckPort,
+    status: status ?? this.status,
+    lastCheckAt: lastCheckAt ?? this.lastCheckAt,
+    lastCheckLatencyMs: lastCheckLatencyMs ?? this.lastCheckLatencyMs,
+    lastCheckReason: lastCheckReason ?? this.lastCheckReason,
+    lastWolResult: lastWolResult ?? this.lastWolResult,
+    lastWolAt: lastWolAt ?? this.lastWolAt,
+  );
+
   factory Device.fromJson(Map<String, dynamic> json) => Device(
     id: json['id'] as int?,
     name: json['name'] as String,
@@ -62,6 +86,56 @@ class Device {
       value is int ? DateTime.fromMillisecondsSinceEpoch(value) : null;
 }
 
+class DeviceStatusResult {
+  const DeviceStatusResult({
+    required this.deviceId,
+    required this.status,
+    required this.method,
+    this.latencyMs,
+    this.reason,
+    this.checkedAt,
+  });
+
+  final int deviceId;
+  final String status;
+  final String method;
+  final int? latencyMs;
+  final String? reason;
+  final DateTime? checkedAt;
+
+  factory DeviceStatusResult.fromJson(Map<String, dynamic> json) =>
+      DeviceStatusResult(
+        deviceId: json['deviceId'] as int,
+        status: json['status'] as String? ?? 'UNKNOWN',
+        method: json['method'] as String? ?? 'UNKNOWN',
+        latencyMs: json['latencyMs'] as int?,
+        reason: json['reason'] as String?,
+        checkedAt: _dateValue(json['checkedAt']),
+      );
+}
+
+class DeviceWakeResult {
+  const DeviceWakeResult({
+    required this.deviceId,
+    required this.result,
+    this.latencyMs,
+    this.reason,
+  });
+
+  final int deviceId;
+  final String result;
+  final int? latencyMs;
+  final String? reason;
+
+  factory DeviceWakeResult.fromJson(Map<String, dynamic> json) =>
+      DeviceWakeResult(
+        deviceId: json['deviceId'] as int,
+        result: json['result'] as String? ?? 'UNKNOWN',
+        latencyMs: json['latencyMs'] as int?,
+        reason: json['reason'] as String?,
+      );
+}
+
 class DiscoveryDevice {
   const DiscoveryDevice({
     required this.ipAddress,
@@ -85,3 +159,6 @@ class DiscoveryDevice {
             .toList(),
       );
 }
+
+DateTime? _dateValue(Object? value) =>
+    value is int ? DateTime.fromMillisecondsSinceEpoch(value) : null;

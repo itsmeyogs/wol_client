@@ -7,15 +7,21 @@ import 'gateway_session_controller.dart';
 class DeviceController extends GetxController {
   DeviceController(
     this._getDevices,
+    this._getDevice,
     this._saveDevice,
     this._deleteDevice,
     this._discoverDevices,
+    this._checkDeviceStatus,
+    this._wakeDevice,
     this._session,
   );
   final GetDevices _getDevices;
+  final GetDevice _getDevice;
   final SaveDevice _saveDevice;
   final DeleteDevice _deleteDevice;
   final DiscoverDevices _discoverDevices;
+  final CheckDeviceStatus _checkDeviceStatus;
+  final WakeDevice _wakeDevice;
   final GatewaySessionController _session;
   final devices = <Device>[].obs;
   final discovered = <DiscoveryDevice>[].obs;
@@ -24,6 +30,10 @@ class DeviceController extends GetxController {
   final isDiscovering = false.obs;
   final error = RxnString();
   final discoveryError = RxnString();
+  final statusResults = <int, DeviceStatusResult>{}.obs;
+  final wakeResults = <int, DeviceWakeResult>{}.obs;
+  final statusLoadingIds = <int>{}.obs;
+  final wakeLoadingIds = <int>{}.obs;
 
   Future<void> load() async {
     final gateway = _session.activeGateway.value;
@@ -38,6 +48,18 @@ class DeviceController extends GetxController {
       error.value = 'Devices could not be loaded.';
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<Device> loadDevice(int id) async {
+    final gateway = _session.activeGateway.value;
+    if (gateway == null) throw const GatewayFailure('No gateway is selected.');
+    try {
+      return await _getDevice(gateway, id);
+    } on GatewayFailure {
+      rethrow;
+    } catch (_) {
+      throw const GatewayFailure('Device details could not be loaded.');
     }
   }
 
@@ -116,6 +138,58 @@ class DeviceController extends GetxController {
       discoveryError.value = 'Device discovery failed.';
     } finally {
       isDiscovering.value = false;
+    }
+  }
+
+  Future<DeviceStatusResult> checkStatus(Device device) async {
+    final id = device.id;
+    if (id == null) throw const GatewayFailure('Device ID is missing.');
+    if (statusLoadingIds.contains(id)) {
+      throw const GatewayFailure('Status check is already running.');
+    }
+    final gateway = _session.activeGateway.value;
+    if (gateway == null) throw const GatewayFailure('No gateway is selected.');
+    statusLoadingIds.add(id);
+    try {
+      final result = await _checkDeviceStatus(gateway, id);
+      statusResults[id] = result;
+      final index = devices.indexWhere((item) => item.id == id);
+      if (index != -1) {
+        devices[index] = devices[index].copyWith(
+          status: result.status,
+          lastCheckAt: result.checkedAt,
+          lastCheckLatencyMs: result.latencyMs,
+          lastCheckReason: result.reason,
+        );
+      }
+      return result;
+    } finally {
+      statusLoadingIds.remove(id);
+    }
+  }
+
+  Future<DeviceWakeResult> wake(Device device) async {
+    final id = device.id;
+    if (id == null) throw const GatewayFailure('Device ID is missing.');
+    if (wakeLoadingIds.contains(id)) {
+      throw const GatewayFailure('Wake action is already running.');
+    }
+    final gateway = _session.activeGateway.value;
+    if (gateway == null) throw const GatewayFailure('No gateway is selected.');
+    wakeLoadingIds.add(id);
+    try {
+      final result = await _wakeDevice(gateway, id);
+      wakeResults[id] = result;
+      final index = devices.indexWhere((item) => item.id == id);
+      if (index != -1) {
+        devices[index] = devices[index].copyWith(
+          lastWolResult: result.result,
+          lastWolAt: DateTime.now(),
+        );
+      }
+      return result;
+    } finally {
+      wakeLoadingIds.remove(id);
     }
   }
 

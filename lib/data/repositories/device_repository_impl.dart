@@ -12,6 +12,10 @@ class DeviceRepositoryImpl implements DeviceRepository {
   Future<List<Device>> getAll(Gateway gateway) => _client.getDevices(gateway);
 
   @override
+  Future<Device> getById(Gateway gateway, int id) =>
+      _client.getDevice(gateway, id);
+
+  @override
   Future<Device> save(Gateway gateway, Device device) =>
       _client.saveDevice(gateway, device);
 
@@ -22,4 +26,12 @@ class DeviceRepositoryImpl implements DeviceRepository {
   @override
   Future<List<DiscoveryDevice>> discover(Gateway gateway) =>
       _client.discoverDevices(gateway);
+
+  @override
+  Future<DeviceStatusResult> getStatus(Gateway gateway, int id) =>
+      _client.getDeviceStatus(gateway, id);
+
+  @override
+  Future<DeviceWakeResult> wake(Gateway gateway, int id) =>
+      _client.wakeDevice(gateway, id);
 }

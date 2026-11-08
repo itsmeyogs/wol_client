@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
 import '../../controllers/device_controller.dart';
 import '../../controllers/gateway_session_controller.dart';
-import '../device/device_add_edit_page.dart';
+import '../device/device_detail_page.dart';
 import '../device/discovery_scan_page.dart';
 
 class GatewayDashboardPage extends StatefulWidget {
@@ -24,16 +25,25 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
   }
 
   Future<void> _add() async {
-    final saved = await Get.to<bool>(() => const DiscoveryScanPage());
-    if (saved == true && mounted) await controller.load();
+    final result = await Get.to<String>(() => const DiscoveryScanPage());
+    if (result != null && mounted) {
+      await controller.load();
+      if (controller.error.value == null) {
+        AppSnackbar.success(
+          result == 'updated' ? 'Device updated.' : 'Device added.',
+        );
+      } else {
+        AppSnackbar.error(controller.error.value!);
+      }
+    }
   }
 
-  Future<void> _delete(Device device) async {
+  Future<void> _wake(Device device) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete device?'),
-        content: Text('Remove ${device.name}?'),
+        title: const Text('Wake device?'),
+        content: Text('Send a magic packet to ${device.name}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -41,46 +51,36 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: const Text('Wake up'),
           ),
         ],
       ),
     );
-    if (confirmed == true) {
-      await controller.deleteDevice(device);
-      AppSnackbar.success('Device deleted.');
+    if (confirmed != true) return;
+    try {
+      final result = await controller.wake(device);
+      AppSnackbar.success(
+        '${result.result}: packet delivery does not prove the computer powered on.',
+      );
+    } on GatewayFailure catch (failure) {
+      AppSnackbar.error(failure.message);
+    } catch (_) {
+      AppSnackbar.error('Wake packet could not be sent.');
     }
   }
 
-  Future<void> _actions(Device device) async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit device'),
-              onTap: () => Navigator.pop(context, 'edit'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete device'),
-              onTap: () => Navigator.pop(context, 'delete'),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+  Future<void> _open(Device device) async {
+    final result = await Get.to<String>(
+      () => DeviceDetailPage(deviceId: device.id!),
     );
-    if (!mounted) return;
-    if (action == 'edit') {
-      final saved = await Get.to<bool>(() => DeviceAddEditPage(device: device));
-      if (saved == true && mounted) await controller.load();
+    if (result == 'deleted' && mounted) {
+      await controller.load();
+      if (controller.error.value == null) {
+        AppSnackbar.success('Device deleted.');
+      } else {
+        AppSnackbar.error(controller.error.value!);
+      }
     }
-    if (action == 'delete') _delete(device);
   }
 
   @override
@@ -151,20 +151,78 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
             itemBuilder: (context, index) {
               final device = controller.devices[index];
               return Card(
-                child: ListTile(
-                  onLongPress: () => _actions(device),
-                  title: Text(device.name),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [Text(device.ipAddress), Text(device.macAddress)],
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () => _open(device),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                device.name,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ),
+                            _StatusBadge(status: device.status),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(device.ipAddress),
+                        Text(device.macAddress),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Last checked: ${_time(device.lastCheckAt)}',
+                              ),
+                            ),
+                            if (device.status != 'ONLINE')
+                              TextButton.icon(
+                                onPressed: () => _wake(device),
+                                icon: const Icon(Icons.power_settings_new),
+                                label: const Text('Wake up'),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  trailing: Text(device.status),
                 ),
               );
             },
           ),
         );
       }),
+    );
+  }
+
+  String _time(DateTime? value) {
+    if (value == null) return 'Never';
+    final local = value.toLocal();
+    return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status) {
+      'ONLINE' => Colors.green,
+      'OFFLINE' => Theme.of(context).colorScheme.error,
+      _ => Colors.orange,
+    };
+    return Chip(
+      avatar: Icon(Icons.circle, size: 10, color: color),
+      label: Text(status),
     );
   }
 }

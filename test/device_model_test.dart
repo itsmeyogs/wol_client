@@ -37,4 +37,51 @@ void main() {
     expect(device.macAddress, isNull);
     expect(device.openPorts, [3389, 445]);
   });
+
+  test('parses status and wake results', () {
+    final status = DeviceStatusResult.fromJson({
+      'deviceId': 7,
+      'status': 'ONLINE',
+      'method': 'ICMP_AND_TCP',
+      'latencyMs': 42,
+      'reason': 'tcp_connected',
+      'checkedAt': 1730000000000,
+    });
+    final wake = DeviceWakeResult.fromJson({
+      'deviceId': 7,
+      'result': 'PACKET_SENT',
+      'latencyMs': 8,
+      'reason': 'packet_sent',
+    });
+
+    expect(status.status, 'ONLINE');
+    expect(status.latencyMs, 42);
+    expect(wake.result, 'PACKET_SENT');
+    expect(wake.reason, 'packet_sent');
+  });
+
+  test('parses a device detail response', () {
+    final device = Device.fromJson({
+      'id': 12,
+      'name': 'Living Room PC',
+      'ipAddress': '192.168.1.12',
+      'macAddress': '00:11:22:33:44:55',
+      'broadcastAddress': '192.168.1.255',
+      'wolPort': 9,
+      'statusCheckMethod': 'ICMP_AND_TCP',
+      'statusCheckPort': 3389,
+      'status': 'OFFLINE',
+      'lastCheckAt': 1730000000000,
+      'lastCheckLatencyMs': 120,
+      'lastCheckReason': 'tcp_timeout',
+      'lastWolResult': 'PACKET_SENT',
+      'lastWolAt': 1730000001000,
+    });
+
+    expect(device.id, 12);
+    expect(device.status, 'OFFLINE');
+    expect(device.lastCheckLatencyMs, 120);
+    expect(device.lastCheckReason, 'tcp_timeout');
+    expect(device.lastWolResult, 'PACKET_SENT');
+  });
 }

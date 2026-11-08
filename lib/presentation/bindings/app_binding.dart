@@ -62,6 +62,10 @@ class AppBinding extends Bindings {
       () => GetDevices(Get.find<DeviceRepository>()),
       fenix: true,
     );
+    Get.lazyPut<GetDevice>(
+      () => GetDevice(Get.find<DeviceRepository>()),
+      fenix: true,
+    );
     Get.lazyPut<SaveDevice>(
       () => SaveDevice(Get.find<DeviceRepository>()),
       fenix: true,
@@ -74,12 +78,23 @@ class AppBinding extends Bindings {
       () => DiscoverDevices(Get.find<DeviceRepository>()),
       fenix: true,
     );
+    Get.lazyPut<CheckDeviceStatus>(
+      () => CheckDeviceStatus(Get.find<DeviceRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut<WakeDevice>(
+      () => WakeDevice(Get.find<DeviceRepository>()),
+      fenix: true,
+    );
     Get.lazyPut<DeviceController>(
       () => DeviceController(
         Get.find<GetDevices>(),
+        Get.find<GetDevice>(),
         Get.find<SaveDevice>(),
         Get.find<DeleteDevice>(),
         Get.find<DiscoverDevices>(),
+        Get.find<CheckDeviceStatus>(),
+        Get.find<WakeDevice>(),
         Get.find<GatewaySessionController>(),
       ),
       fenix: true,
