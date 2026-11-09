@@ -4,7 +4,7 @@ import 'package:wol_client/data/models/gateway_diagnostics.dart';
 void main() {
   test('parses the current general and standard mode contract', () {
     final diagnostics = GatewayDiagnostics.fromJson({
-      'general': {
+       'general': {
         'appVersion': '1.0',
         'androidVersion': '14',
         'deviceClassification': 'OTHER',
@@ -12,8 +12,28 @@ void main() {
         'tunnel': {'label': 'Tunnel', 'value': 'Connected', 'status': 'PASS'},
         'safeErrors': [],
         'device': {'manufacturer': 'Google', 'model': 'Pixel 7'},
-        'apiToken': 'hidden',
-      },
+         'apiToken': 'hidden',
+       },
+       'thermal': {
+         'source': 'ANDROID_PUBLIC',
+         'mode': 'STANDARD',
+         'status': 'NOMINAL',
+         'batteryTemperatureCelsius': 34.2,
+         'thermalStatus': 'NOMINAL',
+         'thermalHeadroom': 0.18,
+         'sensors': [
+           {
+             'name': 'battery',
+             'type': 'BATTERY',
+             'temperatureCelsius': 34.2,
+             'status': 'NOMINAL',
+             'source': 'ANDROID_PUBLIC',
+           },
+         ],
+         'sampledAt': 1730000000000,
+         'available': true,
+         'safeError': null,
+       },
       'serviceMode': {
         'effectiveMode': 'STANDARD',
         'fallback': false,
@@ -37,12 +57,23 @@ void main() {
     expect(diagnostics.serviceMode.title, 'Standard Mode');
     expect(diagnostics.serviceMode.items, hasLength(2));
     expect(diagnostics.serviceMode.items.last.status, 'WARN');
+    expect(diagnostics.thermal.available, isTrue);
+    expect(diagnostics.thermal.batteryTemperatureCelsius, 34.2);
+    expect(diagnostics.thermal.sensors.single.name, 'battery');
   });
 
   test('parses root fallback and preserves all mode checks', () {
     final diagnostics = GatewayDiagnostics.fromJson({
       'general': {
         'safeErrors': ['Root unavailable'],
+      },
+      'thermal': {
+        'source': 'ANDROID_PUBLIC',
+        'mode': 'STANDARD',
+        'status': 'UNKNOWN',
+        'sensors': [],
+        'available': false,
+        'sampledAt': 1730000000000,
       },
       'serviceMode': {
         'effectiveMode': 'STANDARD',
@@ -61,6 +92,7 @@ void main() {
     expect(diagnostics.serviceMode.fallback, isTrue);
     expect(diagnostics.serviceMode.items, hasLength(8));
     expect(diagnostics.general.fields.single.value, 'Root unavailable');
+    expect(diagnostics.thermal.isEmpty, isTrue);
   });
 
   test('formats camel case labels without replacement tokens', () {
@@ -70,6 +102,14 @@ void main() {
         'androidVersion': '14',
         'networkInterface': 'wlan0',
       },
+      'thermal': {
+        'source': 'UNAVAILABLE',
+        'mode': 'STANDARD',
+        'status': 'UNKNOWN',
+        'sensors': [],
+        'available': false,
+        'sampledAt': 1730000000000,
+      },
     });
 
     final labels = diagnostics.general.fields.map((field) => field.label);
@@ -77,5 +117,33 @@ void main() {
     expect(labels, contains('Android'));
     expect(labels, contains('Network'));
     expect(labels.join(' '), isNot(contains(r'$1')));
+  });
+
+  test('parses root sensors and tolerates nullable thermal fields', () {
+    final diagnostics = GatewayDiagnostics.fromJson({
+      'thermal': {
+        'source': 'ROOT_ALLOWLIST',
+        'mode': 'ROOT',
+        'status': 'MODERATE',
+        'batteryTemperatureCelsius': null,
+        'thermalStatus': null,
+        'thermalHeadroom': null,
+        'sensors': [
+          {
+            'name': 'cpu',
+            'type': 'CPU',
+            'temperatureCelsius': 41,
+            'status': 'NOMINAL',
+            'source': 'ROOT_ALLOWLIST',
+          },
+        ],
+        'sampledAt': 1730000000000,
+        'available': true,
+        'safeError': 'Root thermal sensors unavailable; using Android public data',
+      },
+    });
+
+    expect(diagnostics.thermal.sensors.single.temperatureCelsius, 41);
+    expect(diagnostics.thermal.safeError, contains('Root thermal'));
   });
 }

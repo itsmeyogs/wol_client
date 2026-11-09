@@ -1,17 +1,25 @@
 class GatewayDiagnostics {
-  const GatewayDiagnostics({required this.general, required this.serviceMode});
+  const GatewayDiagnostics({
+    required this.general,
+    required this.thermal,
+    required this.serviceMode,
+  });
 
   final DiagnosticsGroup general;
+  final ThermalDiagnostics thermal;
   final ServiceModeDiagnostics serviceMode;
 
-  bool get isEmpty => general.fields.isEmpty && serviceMode.items.isEmpty;
+  bool get isEmpty =>
+      general.fields.isEmpty && thermal.isEmpty && serviceMode.items.isEmpty;
 
   factory GatewayDiagnostics.fromJson(Map<String, dynamic> json) {
     final general = _group(json['general']);
+    final thermal = json['thermal'];
     final service = json['serviceMode'];
     final serviceMap = service is Map ? service : const <String, dynamic>{};
     return GatewayDiagnostics(
       general: general,
+      thermal: ThermalDiagnostics.fromJson(thermal),
       serviceMode: ServiceModeDiagnostics(
         effectiveMode: _string(serviceMap['effectiveMode']),
         fallback: serviceMap['fallback'] == true,
@@ -142,6 +150,94 @@ class GatewayDiagnostics {
     ];
     return blockedTerms.any(normalized.contains);
   }
+}
+
+class ThermalDiagnostics {
+  const ThermalDiagnostics({
+    required this.source,
+    required this.mode,
+    required this.status,
+    required this.batteryTemperatureCelsius,
+    required this.thermalStatus,
+    required this.thermalHeadroom,
+    required this.sensors,
+    required this.sampledAt,
+    required this.available,
+    required this.safeError,
+  });
+
+  final String source;
+  final String mode;
+  final String status;
+  final double? batteryTemperatureCelsius;
+  final String? thermalStatus;
+  final double? thermalHeadroom;
+  final List<ThermalSensor> sensors;
+  final int sampledAt;
+  final bool available;
+  final String? safeError;
+
+  bool get isEmpty => !available && sensors.isEmpty && safeError == null;
+
+  factory ThermalDiagnostics.fromJson(Object? value) {
+    final json = value is Map ? value : const <String, dynamic>{};
+    return ThermalDiagnostics(
+      source: _string(json['source'], 'UNAVAILABLE'),
+      mode: _string(json['mode'], 'STANDARD'),
+      status: _string(json['status'], 'UNKNOWN'),
+      batteryTemperatureCelsius: _number(json['batteryTemperatureCelsius']),
+      thermalStatus: json['thermalStatus'] is String
+          ? json['thermalStatus'] as String
+          : null,
+      thermalHeadroom: _number(json['thermalHeadroom']),
+      sensors: _sensorList(json['sensors']),
+      sampledAt: json['sampledAt'] is int ? json['sampledAt'] as int : 0,
+      available: json['available'] == true,
+      safeError: json['safeError'] is String ? json['safeError'] as String : null,
+    );
+  }
+
+  static String _string(Object? value, String fallback) =>
+      value is String && value.isNotEmpty ? value : fallback;
+
+  static double? _number(Object? value) => value is num ? value.toDouble() : null;
+
+  static List<ThermalSensor> _sensorList(Object? value) => value is List
+      ? value
+            .whereType<Map>()
+            .take(16)
+            .map(ThermalSensor.fromJson)
+            .toList()
+      : const [];
+}
+
+class ThermalSensor {
+  const ThermalSensor({
+    required this.name,
+    required this.type,
+    required this.temperatureCelsius,
+    required this.status,
+    required this.source,
+  });
+
+  final String name;
+  final String type;
+  final double temperatureCelsius;
+  final String status;
+  final String source;
+
+  factory ThermalSensor.fromJson(Map<dynamic, dynamic> json) => ThermalSensor(
+    name: _string(json['name'], 'unknown'),
+    type: _string(json['type'], 'UNKNOWN'),
+    temperatureCelsius: _number(json['temperatureCelsius']),
+    status: _string(json['status'], 'UNKNOWN'),
+    source: _string(json['source'], 'UNKNOWN'),
+  );
+
+  static String _string(Object? value, String fallback) =>
+      value is String && value.isNotEmpty ? value : fallback;
+
+  static double _number(Object? value) => value is num ? value.toDouble() : 0;
 }
 
 class DiagnosticsGroup {

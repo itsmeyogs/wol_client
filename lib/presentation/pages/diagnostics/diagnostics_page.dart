@@ -56,6 +56,7 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
               ],
               const SizedBox(height: 12),
               _GeneralSection(group: snapshot.general),
+              _ThermalSection(thermal: snapshot.thermal),
               _ServiceModeSection(mode: snapshot.serviceMode),
             ],
           ),
@@ -94,6 +95,66 @@ class _ServiceModeSection extends StatelessWidget {
       ...mode.items.map((item) => _Check(item: item)),
     ],
   );
+}
+
+class _ThermalSection extends StatelessWidget {
+  const _ThermalSection({required this.thermal});
+
+  final ThermalDiagnostics thermal;
+
+  @override
+  Widget build(BuildContext context) => _DiagnosticsCard(
+    title: 'Thermal',
+    children: [
+      _Field(field: DiagnosticsField('Status', _label(thermal.status))),
+      _Field(field: DiagnosticsField('Available', thermal.available ? 'Yes' : 'No')),
+      _Field(field: DiagnosticsField('Source', _label(thermal.source))),
+      _Field(field: DiagnosticsField('Mode', _label(thermal.mode))),
+      if (thermal.batteryTemperatureCelsius != null)
+        _Field(
+          field: DiagnosticsField(
+            'Battery temperature',
+            '${thermal.batteryTemperatureCelsius!.toStringAsFixed(1)} °C',
+          ),
+        ),
+      if (thermal.thermalStatus != null)
+        _Field(
+          field: DiagnosticsField('Android thermal status', _label(thermal.thermalStatus!)),
+        ),
+      if (thermal.thermalHeadroom != null)
+        _Field(
+          field: DiagnosticsField(
+            'Thermal headroom',
+            thermal.thermalHeadroom!.toStringAsFixed(2),
+          ),
+        ),
+      if (thermal.sampledAt > 0)
+        _Field(field: DiagnosticsField('Sampled at', _time(thermal.sampledAt))),
+      if (thermal.safeError != null)
+        _Field(field: DiagnosticsField('Safe error', thermal.safeError!)),
+      ...thermal.sensors.map(
+        (sensor) => _Field(
+          field: DiagnosticsField(
+            '${_label(sensor.name)} (${_label(sensor.type)})',
+            '${sensor.temperatureCelsius.toStringAsFixed(1)} °C · ${_label(sensor.status)}',
+          ),
+        ),
+      ),
+      if (!thermal.available && thermal.sensors.isEmpty)
+        const _Field(field: DiagnosticsField('Temperature data', 'Unavailable')),
+    ],
+  );
+
+  String _label(String value) => value
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .split(' ')
+      .map((part) => part.isEmpty ? part : '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
+
+  String _time(int milliseconds) => DateTime.fromMillisecondsSinceEpoch(
+    milliseconds,
+  ).toLocal().toString();
 }
 
 class _DiagnosticsCard extends StatelessWidget {

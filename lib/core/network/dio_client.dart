@@ -63,7 +63,7 @@ class DioClient {
           headers: {'Authorization': 'Bearer ${gateway.apiToken}'},
         ),
       );
-      _jsonMap(response.data, 'Gateway diagnostics response is invalid.');
+      _diagnosticsJson(response.data);
     } on DioException catch (error) {
       throw _mapError(error, healthCheck: false);
     }
@@ -74,9 +74,7 @@ class DioClient {
       () =>
           dio.get('${gateway.apiBaseUrl}/diagnostics', options: _auth(gateway)),
     );
-    return GatewayDiagnostics.fromJson(
-      _jsonMap(response.data, 'Gateway diagnostics response is invalid.'),
-    );
+    return GatewayDiagnostics.fromJson(_diagnosticsJson(response.data));
   }
 
   Future<List<Device>> getDevices(Gateway gateway) async {
@@ -337,5 +335,16 @@ class DioClient {
   Map<String, dynamic> _jsonMap(Object? value, String message) {
     if (value is Map) return Map<String, dynamic>.from(value);
     throw GatewayFailure(message, code: 'invalid_api');
+  }
+
+  Map<String, dynamic> _diagnosticsJson(Object? value) {
+    final json = _jsonMap(value, 'Gateway diagnostics response is invalid.');
+    if (json['thermal'] is! Map) {
+      throw const GatewayFailure(
+        'Gateway diagnostics response is invalid.',
+        code: 'invalid_api',
+      );
+    }
+    return json;
   }
 }
