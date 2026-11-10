@@ -21,10 +21,10 @@
 | CP0 | Application foundation | Passed | `4508236 chore: establish application foundation` |
 | CP1 | Local gateway management | Passed | `9d20b48 feat: add local gateway management` |
 | CP2 | Gateway connectivity and validated save | Passed | `94baed3 feat: add gateway health connectivity` |
-| CP3 | Device management and Add Device flow | Passed | Pending |
-| CP4 | Device status and wake actions | Pending | Pending |
-| CP5 | Diagnostics page | Passed | `feat: add gateway diagnostics` |
-| CP6 | Full API and platform verification | Passed | Pending |
+| CP3 | Device management and Add Device flow | Passed | `af391d1 feat: add gateway device management` |
+| CP4 | Device status and wake actions | Passed | `6fcb767 feat: add device status and wake actions` |
+| CP5 | Diagnostics page | Passed | `b8018a5 feat: add gateway diagnostics`; `076d1bc feat: add thermal diagnostics` |
+| CP6 | Full API and platform verification | Passed | `5540dd8 test: verify gateway API workflows` |
 | CP7 | Firebase authentication | Post-MVP | Pending |
 | CP8 | Firebase sync contract and Rules | Post-MVP | Pending |
 | CP9 | Firebase gateway sync | Post-MVP | Pending |
@@ -167,7 +167,7 @@ Live evidence must include a valid gateway, invalid token, and unreachable gatew
 
 ### Current implementation
 
-Device model, repository, use cases, controller, `DiscoveryScanPage`, `DeviceAddEditPage`, model test, and dashboard wiring are present in the working tree. User approved CP3 as passed. Live gateway evidence remains a separate follow-up if required.
+Device model, repository, use cases, controller, `DiscoveryScanPage`, `DeviceAddEditPage`, model test, and dashboard wiring are present. CP3 was approved as passed. Live gateway evidence was verified with CP6.
 
 ### Acceptance criteria
 
@@ -189,18 +189,18 @@ Device model, repository, use cases, controller, `DiscoveryScanPage`, `DeviceAdd
 ### Verification checklist
 
 ```text
-[ ] flutter analyze
-[ ] flutter test
-[ ] live GET /devices
-[ ] live GET /devices/{id}
-[ ] live POST /discovery/scan with results
-[ ] live POST /discovery/scan with empty result
-[ ] add discovered device
-[ ] add manual device
-[ ] edit device
-[ ] delete device
-[ ] invalid device validation
-[ ] duplicate MAC conflict
+[x] flutter analyze
+[x] flutter test
+[x] live GET /devices
+[x] live GET /devices/{id}
+[x] live POST /discovery/scan with results
+[x] live POST /discovery/scan with empty result
+[x] add discovered device
+[x] add manual device
+[x] edit device
+[x] delete device
+[x] invalid device validation
+[x] duplicate MAC conflict
 ```
 
 ### Commit after user approval
