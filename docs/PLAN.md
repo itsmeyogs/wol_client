@@ -28,7 +28,7 @@
 | CP7 | Firebase authentication | Passed | `feat: add Firebase authentication` |
 | CP8 | Firebase sync contract and Rules | Passed | `docs: define Firebase gateway sync contract` |
 | CP9 | Firebase gateway sync | Passed | `feat: sync gateway data with Firebase` |
-| CP10 | Cross-device verification | Post-MVP | Pending |
+| CP10 | Cross-device verification | Passed | `test: verify cross-device gateway sync` |
 
 ## CP0 — Application foundation
 
@@ -543,6 +543,31 @@ feat: sync gateway data with Firebase
 - User A cannot read User B data.
 - Logout behavior is correct.
 - Android, Windows, and Web/WASM are checked.
+
+### Verification status
+
+- User-reported passed: Device A login/create, Device B login/download, edit propagation, synced-token authentication, user isolation, logout, and all three platforms.
+- Local checks passed: `flutter analyze`, `flutter test`, Android debug build, Windows debug build, Web/WASM build, and `git diff --check`.
+- Rules emulator tests were intentionally skipped by user decision; Java 21+ is required to run them.
+- Cross-device tests passed on Android, Windows, and Web/WASM (user-reported).
+
+### Verification checklist
+
+```text
+[x] Device A login and gateway creation (user-reported)
+[x] Device B login and gateway download (user-reported)
+[x] Device A edit and Device B refresh (user-reported)
+[x] Device B token authenticates to the gateway (user-reported)
+[x] User A cannot read User B data (user-reported)
+[x] Logout behavior is correct (user-reported)
+[x] Android, Windows, and Web/WASM checked (user-reported)
+[x] flutter analyze
+[x] flutter test
+[—] npm run test:rules — intentionally skipped by user decision
+[x] Android, Windows, and Web/WASM debug builds
+[x] git diff --check
+[x] Cross-device verification on Android, Windows, and Web/WASM (user-reported)
+```
 
 ### Commit
 
