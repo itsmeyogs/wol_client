@@ -4,6 +4,7 @@ import '../../../core/errors/gateway_failure.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/gateway.dart';
 import '../../controllers/gateway_controller.dart';
+import '../../../core/logging/app_logger.dart';
 
 class GatewayFormPage extends StatefulWidget {
   const GatewayFormPage({super.key, this.gateway});
@@ -54,7 +55,12 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
       }
     } on GatewayFailure catch (failure) {
       if (mounted) _showError(failure.message);
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Gateway save failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       if (mounted) _showError('Gateway could not be saved.');
     } finally {
       if (mounted) setState(() => _saving = false);

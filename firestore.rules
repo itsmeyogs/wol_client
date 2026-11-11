@@ -42,6 +42,14 @@ service cloud.firestore {
         allow delete: if ownsUserPath(uid)
           && resource.data.ownerId == uid;
       }
+      match /gatewayDeletes/{gatewayId} {
+        allow read: if ownsUserPath(uid);
+        allow create, update: if ownsUserPath(uid)
+          && request.resource.data.keys().hasOnly(['ownerId', 'deletedAt'])
+          && request.resource.data.ownerId == uid
+          && request.resource.data.deletedAt is timestamp;
+        allow delete: if ownsUserPath(uid);
+      }
     }
   }
 }

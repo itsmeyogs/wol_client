@@ -3,12 +3,24 @@ import '../../core/errors/gateway_failure.dart';
 import '../../core/network/gateway_url.dart';
 import '../../data/models/gateway.dart';
 import '../../domain/usecases/gateway_usecases.dart';
+import '../../domain/usecases/gateway_sync_usecase.dart';
+import '../../core/logging/app_logger.dart';
+import '../../core/ui/app_snackbar.dart';
 
 class GatewayController extends GetxController {
-  GatewayController(this._getGateways, this._saveGateway, this._deleteGateway);
+  GatewayController(
+    this._getGateways,
+    this._saveGateway,
+    this._deleteGateway, [
+    SyncGateways? syncGateways,
+    ClearLocalGateways? clearLocalGateways,
+  ]) : _syncGateways = syncGateways,
+       _clearLocalGateways = clearLocalGateways;
   final GetGateways _getGateways;
   final SaveGateway _saveGateway;
   final DeleteGateway _deleteGateway;
+  final SyncGateways? _syncGateways;
+  final ClearLocalGateways? _clearLocalGateways;
   final gateways = <Gateway>[].obs;
   final isLoading = false.obs;
   final error = RxnString();
@@ -24,8 +36,14 @@ class GatewayController extends GetxController {
     error.value = null;
     try {
       gateways.assignAll(await _getGateways());
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Local gateway load failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       error.value = 'Local gateways could not be loaded.';
+      AppSnackbar.error(error.value!);
     } finally {
       isLoading.value = false;
     }
@@ -64,11 +82,32 @@ class GatewayController extends GetxController {
       ),
     );
     await load();
+    await _syncLocalChange();
   }
 
   Future<void> deleteGateway(Gateway gateway) async {
     if (gateway.id == null) return;
     await _deleteGateway(gateway.id!);
     await load();
+    await _syncLocalChange();
+  }
+
+  Future<void> clearLocalState() async {
+    await _clearLocalGateways?.call();
+    gateways.clear();
+    error.value = null;
+  }
+
+  Future<void> _syncLocalChange() async {
+    try {
+      await _syncGateways?.call();
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Local gateway sync failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
+      // Local gateway changes remain usable and retry on the next sync.
+    }
   }
 }

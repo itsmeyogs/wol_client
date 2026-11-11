@@ -6,6 +6,7 @@ import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
 import '../../controllers/device_controller.dart';
 import 'device_add_edit_page.dart';
+import '../../../core/logging/app_logger.dart';
 
 class DeviceDetailPage extends StatefulWidget {
   const DeviceDetailPage({super.key, required this.deviceId});
@@ -38,7 +39,12 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       device = await controller.loadDevice(widget.deviceId);
     } on GatewayFailure catch (failure) {
       error = failure.message;
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device detail page load failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       error = 'Device details could not be loaded.';
     } finally {
       if (mounted) setState(() => loading = false);
@@ -62,7 +68,12 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       AppSnackbar.success('Status checked: ${result.status}.');
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device status action failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       AppSnackbar.error('Device status could not be checked.');
     }
   }
@@ -103,7 +114,12 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       );
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device wake action failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       AppSnackbar.error('Wake packet could not be sent.');
     }
   }
@@ -150,7 +166,12 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       if (mounted) Get.back(result: 'deleted');
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device delete action failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       AppSnackbar.error('Device could not be deleted.');
     }
   }

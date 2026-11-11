@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'dart:math';
 
 class AppDatabase {
   AppDatabase._();
@@ -7,10 +8,12 @@ class AppDatabase {
 
   Future<Database> get database async => _database ??= await openDatabase(
     'wol_client.db',
-    version: 1,
-    onCreate: (db, _) => db.execute('''
+    version: 2,
+    onCreate: (db, _) => db
+        .execute('''
           CREATE TABLE gateways (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sync_id TEXT UNIQUE,
             name TEXT NOT NULL,
             scheme TEXT NOT NULL,
             base_url TEXT NOT NULL,
@@ -18,6 +21,43 @@ class AppDatabase {
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
           )
+        ''')
+        .then(
+          (_) => db.execute('''
+          CREATE TABLE gateway_tombstones (
+            sync_id TEXT PRIMARY KEY,
+            deleted_at INTEGER NOT NULL
+          )
         '''),
+        ),
+    onUpgrade: (db, oldVersion, newVersion) async {
+      if (oldVersion < 2) {
+        await db.execute('ALTER TABLE gateways ADD COLUMN sync_id TEXT');
+        await db.execute('''
+          CREATE TABLE gateway_tombstones (
+            sync_id TEXT PRIMARY KEY,
+            deleted_at INTEGER NOT NULL
+          )
+        ''');
+        final rows = await db.query('gateways', columns: ['id']);
+        final random = Random.secure();
+        for (final row in rows) {
+          await db.update(
+            'gateways',
+            {'sync_id': _newSyncId(random)},
+            where: 'id = ?',
+            whereArgs: [row['id']],
+          );
+        }
+        await db.execute(
+          'CREATE UNIQUE INDEX gateways_sync_id ON gateways(sync_id)',
+        );
+      }
+    },
   );
+
+  static String _newSyncId(Random random) =>
+      '${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}'
+      '${random.nextInt(0x7fffffff).toRadixString(36)}'
+      '${random.nextInt(0x7fffffff).toRadixString(36)}';
 }

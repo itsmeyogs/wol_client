@@ -4,7 +4,9 @@ const {
   assertSucceeds,
   initializeTestEnvironment,
 } = require('@firebase/rules-unit-testing');
-const { Timestamp, doc, getDoc, setDoc, updateDoc, deleteDoc } = require('firebase/firestore');
+const {
+  Timestamp, doc, getDoc, setDoc, updateDoc, deleteDoc,
+} = require('firebase/firestore');
 const fs = require('node:fs');
 
 const OWNER = 'owner-uid';
@@ -18,6 +20,10 @@ const gateway = {
 
 function ref(db, uid = OWNER) {
   return doc(db, `users/${uid}/gateways/gateway-1`);
+}
+
+function deleteRef(db, uid = OWNER) {
+  return doc(db, `users/${uid}/gatewayDeletes/gateway-1`);
 }
 
 async function main() {
@@ -38,6 +44,17 @@ async function main() {
     await assertFails(getDoc(ref(guest)));
     await assertFails(getDoc(ref(other, OWNER)));
     await assertFails(setDoc(ref(other, OWNER), gateway));
+
+    const deletion = {
+      ownerId: OWNER,
+      deletedAt: Timestamp.fromMillis(2000),
+    };
+    await assertSucceeds(setDoc(deleteRef(owner), deletion));
+    await assertSucceeds(getDoc(deleteRef(owner)));
+    await assertFails(getDoc(deleteRef(other, OWNER)));
+    await assertFails(setDoc(deleteRef(other, OWNER), deletion));
+    await assertFails(updateDoc(deleteRef(owner), { ownerId: OTHER }));
+    await assertFails(setDoc(deleteRef(owner), { ownerId: OWNER }));
 
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(ref(context.firestore()), gateway);

@@ -27,7 +27,7 @@
 | CP6 | Full API and platform verification | Passed | `5540dd8 test: verify gateway API workflows` |
 | CP7 | Firebase authentication | Passed | `feat: add Firebase authentication` |
 | CP8 | Firebase sync contract and Rules | Passed | `docs: define Firebase gateway sync contract` |
-| CP9 | Firebase gateway sync | Post-MVP | Pending |
+| CP9 | Firebase gateway sync | Passed | `feat: sync gateway data with Firebase` |
 | CP10 | Cross-device verification | Post-MVP | Pending |
 
 ## CP0 — Application foundation
@@ -408,13 +408,69 @@ docs: define Firebase gateway sync contract
 
 ### Scope
 
-- Automatic sync on login/app start.
-- Manual refresh.
-- Upload local gateway records.
-- Download cloud gateway records.
-- SQLite/cloud merge.
-- Last-write-wins using `updatedAt`.
-- API token edits through Edit Gateway sync normally.
+- Add `cloud_firestore` and a Firestore gateway data source.
+- Add a nullable local `sync_id` column through a database migration.
+- Backfill one opaque stable `syncId` for every existing local gateway.
+- Keep `syncId` separate from the SQLite auto-increment `id`.
+- Add a local tombstone table for offline gateway deletes.
+- Upload local gateway records to `users/{uid}/gateways/{syncId}`.
+- Download the authenticated user's gateway collection.
+- Merge local/cloud records with deterministic last-write-wins using `updatedAt`.
+- Apply remote changes to SQLite without gateway API validation.
+- Sync local create, edit, delete, and API-token changes.
+- Trigger sync after authenticated session restoration/login.
+- Provide a manual refresh action while authenticated.
+- Keep guest mode local-only and offline-capable.
+- Expose sync loading, success, offline, and safe error states.
+
+### Implementation order
+
+1. **Local sync identity**
+   - Update the gateway model, SQLite schema, mapper, insert, update, and delete paths.
+   - Migrate database version `1` to `2`; preserve existing rows.
+   - Generate `syncId` once per gateway and never replace it during edits.
+   - Record deleted gateway IDs in a local tombstone table until cloud deletion succeeds.
+
+2. **Firestore boundary**
+   - Add a typed Firestore gateway mapper/data source.
+   - Map `DateTime` to Firestore `Timestamp` and back.
+   - Write only the CP8 fields: `name`, `scheme`, `baseUrl`, `apiToken`, `ownerId`, `createdAt`, `updatedAt`.
+   - Derive `ownerId` from the authenticated Firebase user; never accept it from UI state.
+   - Read only `users/{currentUser.uid}/gateways`.
+   - Never log tokens, Firestore documents, authorization data, or raw Firebase error payloads.
+
+3. **Merge and persistence**
+   - Pull cloud records, index both sides by `syncId`, then compare `updatedAt`.
+   - New local record: upload.
+   - New cloud record: insert locally.
+   - Local record newer: upload and retain local values.
+   - Cloud record newer: replace local values while preserving local `id`.
+   - Equal timestamps: cloud wins, giving the tie a deterministic result.
+   - Process tombstone deletes before treating a missing cloud document as a new record.
+   - Remove a tombstone only after the corresponding cloud delete succeeds.
+   - Keep local data when sync fails or the device is offline; retry on the next sync.
+
+4. **Application lifecycle**
+   - Add a sync repository/use case/controller under the existing Clean Architecture layers.
+   - Start sync only for an authenticated Firebase user.
+   - Run sync after login and restored authenticated session without blocking local gateway access.
+   - Add an authenticated-only manual refresh action.
+   - Prevent concurrent sync runs and make refresh retryable.
+   - Refresh the gateway list after a successful merge.
+
+5. **Cleanup**
+   - Remove the temporary `Exit guest mode` button.
+   - Remove `AuthController.exitGuestMode()`.
+   - Remove its guest-mode cleanup test.
+   - Preserve `Continue as Guest` and normal authenticated logout.
+
+### Explicit non-goals
+
+- No token encryption, Cloud Functions, KMS, sync passphrase, or background polling.
+- No device data synchronization; only gateway records sync.
+- No automatic token rotation.
+- No cloud sync for guest users.
+- No gateway API validation when downloading a cloud record; validation remains required for local gateway save.
 
 ### Acceptance criteria
 
@@ -425,13 +481,50 @@ docs: define Firebase gateway sync contract
 - Offline local usage remains available.
 - Conflicts resolve deterministically.
 - User data remains isolated by Rules.
+- Existing local gateways receive stable sync IDs without data loss.
+- Offline deletes do not reappear after a later sync.
+- A failed sync leaves local gateway records usable and retryable.
+- Login/app-start sync does not block the gateway list from opening.
+- Manual refresh cannot start duplicate sync operations.
+
+### Verification checklist
+
+```text
+[x] database migration preserves existing gateway rows
+[x] existing rows receive stable sync IDs
+[x] authenticated local create uploads one Firestore document
+[x] authenticated cloud-only gateway downloads into SQLite
+[x] local edit propagates after manual refresh
+[x] cloud edit appears after manual refresh
+[x] API-token edit propagates without token logs or notifications
+[x] equal-timestamp conflict resolves cloud-wins
+[x] offline create/edit/delete remain usable locally
+[x] offline delete is removed from Firestore after reconnection
+[x] failed sync retains local data and exposes a retry action
+[x] concurrent sync is prevented
+[x] guest mode never reads or writes Firestore
+[x] Rules emulator tests remain green
+[x] cross-user access remains denied
+```
+
+### Evidence
+
+```text
+npm run test:rules
+flutter analyze
+flutter test
+flutter build apk --debug
+flutter build windows --debug
+flutter build web --wasm
+git diff --check
+```
+
+Live/authenticated evidence must cover two authenticated app instances or devices,
+local/cloud create, edit, token edit, delete, offline retry, and user isolation.
 
 ### Temporary debug cleanup
 
-- Remove the temporary `Exit guest mode` debug button after CP9 sync is complete.
-- Remove `AuthController.exitGuestMode()`.
-- Remove the guest-mode cleanup test if no longer needed.
-- Preserve the normal authenticated logout flow.
+- Covered by the implementation order above.
 
 ### Commit
 

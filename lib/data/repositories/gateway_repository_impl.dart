@@ -19,4 +19,6 @@ class GatewayRepositoryImpl implements GatewayRepository {
 
   @override
   Future<void> delete(int id) => _local.delete(id);
+  @override
+  Future<void> clearLocal() => _local.clearAll();
 }

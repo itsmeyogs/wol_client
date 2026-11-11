@@ -9,9 +9,11 @@ import '../../../data/models/gateway.dart';
 import '../../controllers/gateway_controller.dart';
 import '../../controllers/gateway_session_controller.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/gateway_sync_controller.dart';
 import '../auth/login_page.dart';
 import 'gateway_dashboard_page.dart';
 import 'gateway_form_page.dart';
+import '../../../core/logging/app_logger.dart';
 
 class GatewayListPage extends GetView<GatewayController> {
   const GatewayListPage({super.key});
@@ -44,7 +46,12 @@ class GatewayListPage extends GetView<GatewayController> {
         AppSnackbar.success('Gateway deleted.');
       } on GatewayFailure catch (failure) {
         AppSnackbar.error(failure.message);
-      } catch (_) {
+      } catch (exception, stackTrace) {
+        AppLogger.instance.error(
+          'Gateway delete failed: ${exception.runtimeType}',
+          exception,
+          stackTrace,
+        );
         AppSnackbar.error('Gateway could not be deleted.');
       }
     }
@@ -63,9 +70,10 @@ class GatewayListPage extends GetView<GatewayController> {
     Get.offAll(() => const LoginPage());
   }
 
-  Future<void> _exitGuestMode() async {
-    await Get.find<AuthController>().exitGuestMode();
-    Get.offAll(() => const LoginPage());
+  Future<void> _sync() async {
+    final sync = Get.find<GatewaySyncController>();
+    await sync.sync();
+    if (sync.error.value == null) AppSnackbar.success('Gateways refreshed.');
   }
 
   Future<void> _showActions(BuildContext context, Gateway gateway) async {
@@ -117,20 +125,30 @@ class GatewayListPage extends GetView<GatewayController> {
         actions: [
           Obx(() {
             final auth = Get.find<AuthController>();
-            if (auth.mode.value == AuthMode.guest) {
-              return IconButton(
-                tooltip: 'Exit guest mode',
-                onPressed: _exitGuestMode,
-                icon: const Icon(Icons.login_outlined),
-              );
-            }
             if (auth.mode.value != AuthMode.authenticated) {
               return const SizedBox.shrink();
             }
-            return IconButton(
-              tooltip: 'Sign out',
-              onPressed: _signOut,
-              icon: const Icon(Icons.logout),
+            final sync = Get.find<GatewaySyncController>();
+            return Row(
+              children: [
+                Obx(
+                  () => IconButton(
+                    tooltip: 'Refresh gateways',
+                    onPressed: sync.isSyncing.value ? null : _sync,
+                    icon: sync.isSyncing.value
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.sync),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Sign out',
+                  onPressed: _signOut,
+                  icon: const Icon(Icons.logout),
+                ),
+              ],
             );
           }),
         ],

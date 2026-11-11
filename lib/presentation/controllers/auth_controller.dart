@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/auth/auth_mode.dart';
 import '../../core/logging/app_logger.dart';
 import '../../core/auth/google_windows_sign_in.dart';
+import 'gateway_sync_controller.dart';
+import '../../core/ui/app_snackbar.dart';
+import 'gateway_controller.dart';
 
 class AuthController extends GetxController {
   AuthController({FirebaseAuth? auth, SharedPreferences? preferences})
@@ -40,16 +43,29 @@ class AuthController extends GetxController {
       final user = auth.currentUser;
       if (user != null) {
         mode.value = AuthMode.authenticated;
+        _syncGateways();
       } else if (guest) {
         mode.value = AuthMode.guest;
       } else {
         mode.value = AuthMode.login;
       }
     } on FirebaseAuthException catch (exception) {
+      AppLogger.instance.error(
+        'Firebase auth restore failed: code=${exception.code}',
+        exception,
+        exception.stackTrace,
+      );
       error.value = _message(exception);
+      AppSnackbar.error(error.value!);
       mode.value = AuthMode.unavailable;
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Firebase auth restore failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       error.value = 'Authentication could not be initialized.';
+      AppSnackbar.error(error.value!);
       mode.value = AuthMode.unavailable;
     }
   }
@@ -69,6 +85,7 @@ class AuthController extends GetxController {
           Future<void>.error('Firebase is unavailable.'));
       await (await _prefs).remove(_guestKey);
       mode.value = AuthMode.authenticated;
+      _syncGateways();
     });
   }
 
@@ -98,18 +115,22 @@ class AuthController extends GetxController {
       }
       await (await _prefs).remove(_guestKey);
       mode.value = AuthMode.authenticated;
+      _syncGateways();
     });
   }
 
   Future<void> signOut() async {
+    if (Get.isRegistered<GatewayController>()) {
+      await Get.find<GatewayController>().clearLocalState();
+    }
     await _auth?.signOut();
     mode.value = AuthMode.login;
   }
 
-  Future<void> exitGuestMode() async {
-    await (await _prefs).remove(_guestKey);
-    await _auth?.signOut();
-    mode.value = AuthMode.login;
+  void _syncGateways() {
+    if (Get.isRegistered<GatewaySyncController>()) {
+      Get.find<GatewaySyncController>().sync(silent: true);
+    }
   }
 
   Future<void> _signInGoogleWindows() async {
@@ -132,14 +153,17 @@ class AuthController extends GetxController {
       return true;
     } on FirebaseAuthException catch (exception) {
       AppLogger.instance.warning(
-        '$operation failed: FirebaseAuthException('
-        'code=${exception.code}, message=${exception.message ?? 'none'})',
+        '$operation failed: FirebaseAuthException(code=${exception.code})',
+        exception,
+        exception.stackTrace,
       );
       error.value = _message(exception, operation);
       return false;
-    } catch (exception) {
+    } catch (exception, stackTrace) {
       AppLogger.instance.warning(
-        '$operation failed: ${exception is StateError ? exception.message : exception.runtimeType}',
+        '$operation failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
       );
       error.value = 'Authentication could not be completed.';
       return false;

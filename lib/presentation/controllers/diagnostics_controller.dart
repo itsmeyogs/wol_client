@@ -4,6 +4,8 @@ import '../../core/errors/gateway_failure.dart';
 import '../../data/models/gateway_diagnostics.dart';
 import '../../domain/usecases/diagnostics_usecases.dart';
 import 'gateway_session_controller.dart';
+import '../../core/logging/app_logger.dart';
+import '../../core/ui/app_snackbar.dart';
 
 class DiagnosticsController extends GetxController {
   DiagnosticsController(this._getDiagnostics, this._session);
@@ -27,8 +29,14 @@ class DiagnosticsController extends GetxController {
       diagnostics.value = await _getDiagnostics(gateway);
     } on GatewayFailure catch (failure) {
       error.value = failure.message;
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Diagnostics load failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       error.value = 'Diagnostics could not be loaded.';
+      AppSnackbar.error(error.value!);
     } finally {
       isLoading.value = false;
     }

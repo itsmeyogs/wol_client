@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/network/dio_client.dart';
@@ -18,23 +19,49 @@ import '../../domain/repositories/diagnostics_repository.dart';
 import '../../domain/usecases/diagnostics_usecases.dart';
 import '../controllers/diagnostics_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../../data/datasources/gateway_cloud_data_source.dart';
+import '../../data/repositories/gateway_sync_repository_impl.dart';
+import '../../domain/repositories/gateway_sync_repository.dart';
+import '../../domain/usecases/gateway_sync_usecase.dart';
+import '../controllers/gateway_sync_controller.dart';
 
 class AppBinding extends Bindings {
   @override
   void dependencies() {
-    Get.put<AuthController>(
-      AuthController(
-        auth: Get.find<bool>(tag: 'firebaseReady')
-            ? FirebaseAuth.instance
-            : null,
-      ),
-      permanent: true,
-    );
+    final firebaseReady = Get.find<bool>(tag: 'firebaseReady');
     Get.put<AppDatabase>(AppDatabase.instance, permanent: true);
     Get.put<DioClient>(DioClient.instance, permanent: true);
     Get.lazyPut<GatewayLocalDataSource>(
       () => GatewayLocalDataSource(database: Get.find<AppDatabase>()),
       fenix: true,
+    );
+    if (firebaseReady) {
+      Get.lazyPut<GatewayCloudDataSource>(
+        () => GatewayCloudDataSource(
+          firestore: FirebaseFirestore.instance,
+          auth: FirebaseAuth.instance,
+        ),
+        fenix: true,
+      );
+      Get.lazyPut<GatewaySyncRepository>(
+        () => GatewaySyncRepositoryImpl(
+          local: Get.find<GatewayLocalDataSource>(),
+          cloud: Get.find<GatewayCloudDataSource>(),
+        ),
+        fenix: true,
+      );
+      Get.lazyPut<SyncGateways>(
+        () => SyncGateways(Get.find<GatewaySyncRepository>()),
+        fenix: true,
+      );
+      Get.put<GatewaySyncController>(
+        GatewaySyncController(Get.find<SyncGateways>()),
+        permanent: true,
+      );
+    }
+    Get.put<AuthController>(
+      AuthController(auth: firebaseReady ? FirebaseAuth.instance : null),
+      permanent: true,
     );
     Get.lazyPut<GatewayRepository>(
       () => GatewayRepositoryImpl(
@@ -55,6 +82,10 @@ class AppBinding extends Bindings {
       () => DeleteGateway(Get.find<GatewayRepository>()),
       fenix: true,
     );
+    Get.lazyPut<ClearLocalGateways>(
+      () => ClearLocalGateways(Get.find<GatewayRepository>()),
+      fenix: true,
+    );
 
     Get.put<GatewaySessionController>(
       GatewaySessionController(),
@@ -65,6 +96,8 @@ class AppBinding extends Bindings {
         Get.find<GetGateways>(),
         Get.find<SaveGateway>(),
         Get.find<DeleteGateway>(),
+        firebaseReady ? Get.find<SyncGateways>() : null,
+        Get.find<ClearLocalGateways>(),
       ),
       fenix: true,
     );

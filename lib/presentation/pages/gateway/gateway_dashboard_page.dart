@@ -9,6 +9,7 @@ import '../../controllers/gateway_session_controller.dart';
 import '../device/device_detail_page.dart';
 import '../device/discovery_scan_page.dart';
 import '../diagnostics/diagnostics_page.dart';
+import '../../../core/logging/app_logger.dart';
 
 class GatewayDashboardPage extends StatefulWidget {
   const GatewayDashboardPage({super.key});
@@ -65,7 +66,12 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
       );
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device wake failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       AppSnackbar.error('Wake packet could not be sent.');
     }
   }

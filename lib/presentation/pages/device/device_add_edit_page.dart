@@ -5,6 +5,7 @@ import '../../../core/errors/gateway_failure.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
 import '../../controllers/device_controller.dart';
+import '../../../core/logging/app_logger.dart';
 
 class DeviceAddEditPage extends StatefulWidget {
   const DeviceAddEditPage({super.key, this.device, this.discovery});
@@ -79,7 +80,12 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
       if (mounted) Get.back(result: edit ? 'updated' : 'added');
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device save failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       AppSnackbar.error('Device could not be saved.');
     }
   }

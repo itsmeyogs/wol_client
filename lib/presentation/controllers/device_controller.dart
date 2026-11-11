@@ -3,6 +3,8 @@ import '../../core/errors/gateway_failure.dart';
 import '../../data/models/device.dart';
 import '../../domain/usecases/device_usecases.dart';
 import 'gateway_session_controller.dart';
+import '../../core/logging/app_logger.dart';
+import '../../core/ui/app_snackbar.dart';
 
 class DeviceController extends GetxController {
   DeviceController(
@@ -44,8 +46,14 @@ class DeviceController extends GetxController {
       devices.assignAll(await _getDevices(gateway));
     } on GatewayFailure catch (failure) {
       error.value = failure.message;
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device list load failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       error.value = 'Devices could not be loaded.';
+      AppSnackbar.error(error.value!);
     } finally {
       isLoading.value = false;
     }
@@ -58,7 +66,13 @@ class DeviceController extends GetxController {
       return await _getDevice(gateway, id);
     } on GatewayFailure {
       rethrow;
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device detail load failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
+      AppSnackbar.error('Device details could not be loaded.');
       throw const GatewayFailure('Device details could not be loaded.');
     }
   }
@@ -134,8 +148,14 @@ class DeviceController extends GetxController {
       discovered.assignAll(await _discoverDevices(gateway));
     } on GatewayFailure catch (failure) {
       discoveryError.value = failure.message;
-    } catch (_) {
+    } catch (exception, stackTrace) {
+      AppLogger.instance.error(
+        'Device discovery failed: ${exception.runtimeType}',
+        exception,
+        stackTrace,
+      );
       discoveryError.value = 'Device discovery failed.';
+      AppSnackbar.error(discoveryError.value!);
     } finally {
       isDiscovering.value = false;
     }

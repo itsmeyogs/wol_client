@@ -18,3 +18,9 @@ class DeleteGateway {
   final GatewayRepository _repository;
   Future<void> call(int id) => _repository.delete(id);
 }
+
+class ClearLocalGateways {
+  const ClearLocalGateways(this._repository);
+  final GatewayRepository _repository;
+  Future<void> call() => _repository.clearLocal();
+}

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../errors/gateway_failure.dart';
 import '../logging/app_logger.dart';
 import '../../data/models/gateway.dart';
@@ -21,8 +22,10 @@ class DioClient {
         },
         onError: (error, handler) {
           _logger.error(
-            '${error.requestOptions.method} ${error.requestOptions.uri.path} failed',
-            _safeError(error),
+            'Dio error ${error.requestOptions.method} '
+            '${error.requestOptions.uri.path}: ${_safeError(error)}',
+            error.type,
+            error.stackTrace,
           );
           handler.next(error);
         },
@@ -34,7 +37,7 @@ class DioClient {
   final Dio dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 8),
-      sendTimeout: const Duration(seconds: 8),
+      sendTimeout: kIsWeb ? null : const Duration(seconds: 8),
       receiveTimeout: const Duration(seconds: 15),
       validateStatus: (status) =>
           status != null && status >= 200 && status < 300,
@@ -246,6 +249,13 @@ class DioClient {
 
   GatewayFailure _mapError(DioException error, {required bool healthCheck}) {
     final status = error.response?.statusCode;
+    _logger.error(
+      'Dio failure mapped: ${error.requestOptions.method} '
+      '${error.requestOptions.uri.path}, type=${error.type.name}, '
+      'status=${status ?? 'none'}, healthCheck=$healthCheck',
+      _safeError(error),
+      error.stackTrace,
+    );
     final body = error.response?.data;
     final apiCode = body is Map<String, dynamic> && body['error'] is Map
         ? (body['error'] as Map)['code'] as String?

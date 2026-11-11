@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'core/database/database_factory.dart';
@@ -10,6 +11,21 @@ import 'presentation/pages/auth/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (details) {
+    AppLogger.instance.error(
+      'Unhandled Flutter error: ${details.exception.runtimeType}',
+      details.exception,
+      details.stack,
+    );
+  };
+  PlatformDispatcher.instance.onError = (error, stackTrace) {
+    AppLogger.instance.error(
+      'Unhandled platform error: ${error.runtimeType}',
+      error,
+      stackTrace,
+    );
+    return true;
+  };
   await configureDatabaseFactory();
   var firebaseReady = true;
   try {
