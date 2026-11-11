@@ -25,7 +25,7 @@
 | CP4 | Device status and wake actions | Passed | `6fcb767 feat: add device status and wake actions` |
 | CP5 | Diagnostics page | Passed | `b8018a5 feat: add gateway diagnostics`; `076d1bc feat: add thermal diagnostics` |
 | CP6 | Full API and platform verification | Passed | `5540dd8 test: verify gateway API workflows` |
-| CP7 | Firebase authentication | Post-MVP | Pending |
+| CP7 | Firebase authentication | Passed | `feat: add Firebase authentication` |
 | CP8 | Firebase sync contract and Rules | Post-MVP | Pending |
 | CP9 | Firebase gateway sync | Post-MVP | Pending |
 | CP10 | Cross-device verification | Post-MVP | Pending |
@@ -396,6 +396,13 @@ docs: define Firebase gateway sync contract
 - Offline local usage remains available.
 - Conflicts resolve deterministically.
 - User data remains isolated by Rules.
+
+### Temporary debug cleanup
+
+- Remove the temporary `Exit guest mode` debug button after CP9 sync is complete.
+- Remove `AuthController.exitGuestMode()`.
+- Remove the guest-mode cleanup test if no longer needed.
+- Preserve the normal authenticated logout flow.
 
 ### Commit
 

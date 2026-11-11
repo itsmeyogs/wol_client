@@ -40,6 +40,10 @@ dependencies:
   sqflite: ^2.4.5
   sqflite_common_ffi: ^2.4.5
   sqflite_common_ffi_web: ^1.2.0
+  firebase_core: ^5.1.0
+  firebase_auth: ^7.0.1
+  shared_preferences: ^2.5.6
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +67,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/html/oauth_callback.html
 
   # To add assets to your application, add an assets section, like this:
   # assets:

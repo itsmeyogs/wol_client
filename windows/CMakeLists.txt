@@ -1,6 +1,12 @@
 # Project-level configuration.
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.10)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
 project(wol_client LANGUAGES CXX)
+
+# MSVC 14.51 compatibility workaround (STL1011)
+add_compile_definitions(
+  _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
+)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.

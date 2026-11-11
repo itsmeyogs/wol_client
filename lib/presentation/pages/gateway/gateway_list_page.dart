@@ -4,9 +4,12 @@ import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/auth/auth_mode.dart';
 import '../../../data/models/gateway.dart';
 import '../../controllers/gateway_controller.dart';
 import '../../controllers/gateway_session_controller.dart';
+import '../../controllers/auth_controller.dart';
+import '../auth/login_page.dart';
 import 'gateway_dashboard_page.dart';
 import 'gateway_form_page.dart';
 
@@ -55,6 +58,16 @@ class GatewayListPage extends GetView<GatewayController> {
     if (result == 'updated') AppSnackbar.success('Gateway updated.');
   }
 
+  Future<void> _signOut() async {
+    await Get.find<AuthController>().signOut();
+    Get.offAll(() => const LoginPage());
+  }
+
+  Future<void> _exitGuestMode() async {
+    await Get.find<AuthController>().exitGuestMode();
+    Get.offAll(() => const LoginPage());
+  }
+
   Future<void> _showActions(BuildContext context, Gateway gateway) async {
     final action = await showModalBottomSheet<_GatewayAction>(
       context: context,
@@ -99,7 +112,29 @@ class GatewayListPage extends GetView<GatewayController> {
   Widget build(BuildContext context) {
     final horizontal = AppResponsive.horizontalPadding(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('WoL gateways')),
+      appBar: AppBar(
+        title: const Text('WoL gateways'),
+        actions: [
+          Obx(() {
+            final auth = Get.find<AuthController>();
+            if (auth.mode.value == AuthMode.guest) {
+              return IconButton(
+                tooltip: 'Exit guest mode',
+                onPressed: _exitGuestMode,
+                icon: const Icon(Icons.login_outlined),
+              );
+            }
+            if (auth.mode.value != AuthMode.authenticated) {
+              return const SizedBox.shrink();
+            }
+            return IconButton(
+              tooltip: 'Sign out',
+              onPressed: _signOut,
+              icon: const Icon(Icons.logout),
+            );
+          }),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _form(null),
         tooltip: 'Add gateway',

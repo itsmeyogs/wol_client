@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/network/dio_client.dart';
@@ -16,10 +17,19 @@ import '../../data/repositories/diagnostics_repository_impl.dart';
 import '../../domain/repositories/diagnostics_repository.dart';
 import '../../domain/usecases/diagnostics_usecases.dart';
 import '../controllers/diagnostics_controller.dart';
+import '../controllers/auth_controller.dart';
 
 class AppBinding extends Bindings {
   @override
   void dependencies() {
+    Get.put<AuthController>(
+      AuthController(
+        auth: Get.find<bool>(tag: 'firebaseReady')
+            ? FirebaseAuth.instance
+            : null,
+      ),
+      permanent: true,
+    );
     Get.put<AppDatabase>(AppDatabase.instance, permanent: true);
     Get.put<DioClient>(DioClient.instance, permanent: true);
     Get.lazyPut<GatewayLocalDataSource>(

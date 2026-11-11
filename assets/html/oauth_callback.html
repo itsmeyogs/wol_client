@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Return to WoL Client</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ground: #0d1117;
+      --surface: #161b22;
+      --surface-strong: #1c2430;
+      --ink: #f0f6fc;
+      --muted: #8b949e;
+      --accent: #48cfad;
+      --danger: #ff7b72;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--ground);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(100%, 460px);
+      padding: 40px;
+      background: var(--surface);
+      border-radius: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 64px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: .01em;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: var(--ground);
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .status-mark {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      margin-bottom: 28px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      color: var(--accent);
+      font-size: 25px;
+      font-weight: 700;
+    }
+
+    .status-mark::before {
+      content: "";
+      width: 18px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: turn 900ms linear infinite;
+    }
+
+    h1 {
+      max-width: 10ch;
+      margin: 0 0 16px;
+      font-size: clamp(32px, 8vw, 48px);
+      font-weight: 760;
+      letter-spacing: -.045em;
+      line-height: .98;
+    }
+
+    p {
+      max-width: 34ch;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .progress {
+      height: 4px;
+      margin-top: 36px;
+      overflow: hidden;
+      background: var(--surface-strong);
+      border-radius: 99px;
+    }
+
+    .progress::after {
+      content: "";
+      display: block;
+      width: 38%;
+      height: 100%;
+      background: var(--accent);
+      border-radius: inherit;
+      animation: progress 1.4s ease-in-out infinite;
+    }
+
+    .note {
+      margin-top: 48px;
+      color: #6e7681;
+      font-size: 13px;
+    }
+
+    .success .status-mark { border-color: var(--accent); }
+    .success .status-mark::before {
+      content: "OK";
+      width: auto;
+      height: auto;
+      border: 0;
+      animation: none;
+    }
+
+    .error .status-mark {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .error .status-mark::before {
+      content: "!";
+      width: auto;
+      height: auto;
+      border: 0;
+      animation: none;
+    }
+
+    .success .progress,
+    .error .progress { display: none; }
+
+    @keyframes turn { to { transform: rotate(360deg); } }
+    @keyframes progress {
+      0% { transform: translateX(-130%); }
+      100% { transform: translateX(360%); }
+    }
+
+    @media (max-width: 520px) {
+      main { padding: 28px; }
+      .brand { margin-bottom: 48px; }
+      .note { margin-top: 40px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .status-mark::before,
+      .progress::after { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main id="panel" aria-live="polite">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">W</span>
+      <span>WoL Client</span>
+    </div>
+
+    <div class="status-mark" aria-hidden="true"></div>
+    <h1 id="title">Finishing sign-in</h1>
+    <p id="message">Your Google session is being returned to the app. Keep this window open for a moment.</p>
+    <div class="progress" aria-hidden="true"></div>
+    <p class="note">You can close this window after returning to WoL Client.</p>
+  </main>
+
+  <script>
+    const panel = document.getElementById('panel');
+    const title = document.getElementById('title');
+    const message = document.getElementById('message');
+    const payload = window.location.hash.substring(1) || window.location.search.substring(1);
+
+    function showState(state, heading, copy) {
+      panel.className = state;
+      title.textContent = heading;
+      message.textContent = copy;
+    }
+
+    fetch('/auth_callback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: payload
+    }).then((response) => {
+      if (!response.ok) throw new Error('Callback was rejected.');
+      showState('success', 'You are signed in', 'Return to WoL Client to continue. This window can close now.');
+      window.setTimeout(() => window.close(), 1200);
+    }).catch(() => {
+      showState('error', 'Sign-in did not finish', 'Return to WoL Client and try again. No credentials were displayed here.');
+    });
+  </script>
+</body>
+</html>

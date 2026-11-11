@@ -1,13 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'core/database/database_factory.dart';
+import 'core/logging/app_logger.dart';
 import 'core/theme/app_theme.dart';
+import 'firebase_options.dart';
 import 'presentation/bindings/app_binding.dart';
-import 'presentation/pages/gateway/gateway_list_page.dart';
+import 'presentation/pages/auth/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDatabaseFactory();
+  var firebaseReady = true;
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (exception, stackTrace) {
+    AppLogger.instance.error(
+      'Firebase initialization failed',
+      exception,
+      stackTrace,
+    );
+    firebaseReady = false;
+  }
+  Get.put<bool>(firebaseReady, tag: 'firebaseReady', permanent: true);
   runApp(const MyApp());
 }
 
@@ -18,7 +35,7 @@ class MyApp extends StatelessWidget {
     title: 'WoL Client',
     theme: AppTheme.light,
     initialBinding: AppBinding(),
-    home: const GatewayListPage(),
+    home: const AuthGate(),
     debugShowCheckedModeBanner: false,
   );
 }
