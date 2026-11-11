@@ -320,6 +320,9 @@ Firebase is not required for guest MVP usage. It begins after the gateway API wo
 users/{uid}/gateways/{gatewayId}
 ```
 
+`gatewayId` is a stable opaque sync identifier and is distinct from the local
+SQLite auto-increment `id`. CP9 owns generating and persisting it.
+
 Document fields:
 
 ```text

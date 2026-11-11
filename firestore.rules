@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUserPath(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validGateway(data, uid) {
+      return data.keys().hasAll([
+          'name', 'scheme', 'baseUrl', 'apiToken',
+          'ownerId', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'name', 'scheme', 'baseUrl', 'apiToken',
+          'ownerId', 'createdAt', 'updatedAt'
+        ])
+        && data.name is string
+        && data.scheme is string
+        && (data.scheme == 'http' || data.scheme == 'https')
+        && data.baseUrl is string
+        && data.apiToken is string
+        && data.ownerId is string
+        && data.ownerId == uid
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{uid} {
+      match /gateways/{gatewayId} {
+        allow read: if ownsUserPath(uid);
+        allow create: if ownsUserPath(uid)
+          && validGateway(request.resource.data, uid);
+        allow update: if ownsUserPath(uid)
+          && resource.data.ownerId == uid
+          && request.resource.data.ownerId == resource.data.ownerId
+          && validGateway(request.resource.data, uid);
+        allow delete: if ownsUserPath(uid)
+          && resource.data.ownerId == uid;
+      }
+    }
+  }
+}

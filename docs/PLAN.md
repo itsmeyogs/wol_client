@@ -26,7 +26,7 @@
 | CP5 | Diagnostics page | Passed | `b8018a5 feat: add gateway diagnostics`; `076d1bc feat: add thermal diagnostics` |
 | CP6 | Full API and platform verification | Passed | `5540dd8 test: verify gateway API workflows` |
 | CP7 | Firebase authentication | Passed | `feat: add Firebase authentication` |
-| CP8 | Firebase sync contract and Rules | Post-MVP | Pending |
+| CP8 | Firebase sync contract and Rules | Passed | `docs: define Firebase gateway sync contract` |
 | CP9 | Firebase gateway sync | Post-MVP | Pending |
 | CP10 | Cross-device verification | Post-MVP | Pending |
 
@@ -260,6 +260,15 @@ flutter test
 git diff --check
 ```
 
+### Verification result
+
+- Firestore Rules emulator checks passed: owner CRUD, guest denial, cross-user
+  denial, immutable `ownerId`, invalid scheme, and unknown fields.
+- Firebase Rules deployed successfully to project `wol-client`.
+- Android, Windows, and Web/WASM builds passed.
+- Flutter analyzer and tests passed.
+- Firestore runtime sync is intentionally deferred to CP9.
+
 ### Commit
 
 ```text
@@ -338,6 +347,9 @@ feat: add Firebase authentication
 
 ## CP8 — Firebase sync contract and Rules — post-MVP
 
+**Execution contract:** `gatewayId` is a stable opaque document ID. It is not
+the local SQLite auto-increment `id`; CP9 must add or persist this sync ID.
+
 ### Firestore path
 
 ```text
@@ -364,6 +376,23 @@ updatedAt
 - Update requires existing and new owner IDs to remain the authenticated UID.
 - Delete requires ownership.
 - `ownerId` cannot be changed by a client update.
+
+### Implemented artifacts
+
+- `firestore.rules` validates ownership, exact fields, field types, and `http`/
+  `https` scheme values.
+- `firebase.json` configures Firestore Rules and the local emulator.
+- `test/firestore_rules_test.js` covers owner CRUD, guest denial, cross-user
+  denial, owner tampering, invalid scheme, and unknown fields.
+
+### Verification
+
+```text
+npm run test:rules
+flutter analyze
+flutter test
+git diff --check
+```
 
 ### Product security decision
 

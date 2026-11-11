@@ -283,6 +283,13 @@ Controls:
 
 This is access control, not encryption. A compromised authenticated account can expose that account's token; the user can replace the token through Edit Gateway after rotating it in the gateway application.
 
+### Firebase sync identifier
+
+Firestore stores each gateway at `users/{uid}/gateways/{gatewayId}`, where
+`gatewayId` is a stable opaque identifier independent of the local SQLite
+auto-increment `id`. CP9 must persist this identifier for deterministic
+cross-device merge.
+
 ## 9. Responsive and accessibility requirements
 
 - Use native Flutter layout primitives only.
