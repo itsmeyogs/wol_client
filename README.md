@@ -12,6 +12,14 @@ This client connects to a companion gateway service. For the official gateway se
 - 📱 **Android & 💻 Windows**: Download pre-built installer/APK binaries from 👉 **[GitHub Releases](../../releases)**.
 - 🌐 **Web Version**: No download required. The web application is hosted and accessible at 👉 **[wol.yogi-islami.my.id](https://wol.yogi-islami.my.id)**.
 
+The web app connects directly to the configured gateway API. If it shows **“Gateway cannot be reached,”** check the browser console for a CORS error. For example:
+
+```text
+Access to XMLHttpRequest at 'https://gateway.example.com/api/v1/health' from origin 'https://wol.yogi-islami.my.id' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+
+If the console reports a CORS error, add the web app's origin to the gateway's CORS Origins. For production, add `https://wol.yogi-islami.my.id`. See [WOLGatewayAndroid — CORS Allowed Origins](https://github.com/itsmeyogs/WOLGatewayAndroid#cors-allowed-origins).
+
 ---
 
 ## ✨ Features
