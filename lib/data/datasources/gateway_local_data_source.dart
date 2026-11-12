@@ -91,8 +91,11 @@ class GatewayLocalDataSource {
       rows = await db.query(
         'gateways',
         columns: ['id'],
-        where: 'lower(scheme) = ? AND lower(rtrim(base_url, "/")) = ?',
-        whereArgs: [gateway.scheme.toLowerCase(), gateway.baseUrl.toLowerCase().replaceAll(RegExp(r'/+$'), '')],
+        where: "lower(scheme) = ? AND lower(rtrim(base_url, '/')) = ?",
+        whereArgs: [
+          gateway.scheme.toLowerCase(),
+          gateway.baseUrl.toLowerCase().replaceAll(RegExp(r'/+$'), ''),
+        ],
       );
     }
     if (rows.isEmpty) {
