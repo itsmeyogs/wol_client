@@ -201,18 +201,15 @@ class SettingsPage extends GetView<AuthController> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 5),
-        Text(
-          description,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            height: 1.45,
-          ),
-        ),
+        if (description.isNotEmpty) ...[
+          const SizedBox(height: 5),
+          Text(description, style: theme.textTheme.bodyMedium),
+        ],
       ],
     );
-    final panel = Card(
-      child: Padding(padding: const EdgeInsets.all(20), child: content),
+    final panel = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: content,
     );
     if (!wide) {
       return Column(
@@ -271,7 +268,7 @@ class SettingsPage extends GetView<AuthController> {
       final user = controller.currentUser;
       final guest = mode == AuthMode.guest;
       final unverified = controller.needsEmailVerification;
-      final wide = MediaQuery.sizeOf(context).width >= 760;
+      final wide = MediaQuery.sizeOf(context).width >= 1024;
       final theme = Theme.of(context);
       final accountActions = <Widget>[];
       if (guest) {
@@ -354,7 +351,7 @@ class SettingsPage extends GetView<AuthController> {
           children: [
             Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 940),
+                constraints: const BoxConstraints(maxWidth: 760),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -365,18 +362,11 @@ class SettingsPage extends GetView<AuthController> {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Manage your account and sign-in methods.',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     _section(
                       context,
                       title: 'Account',
-                      description: 'Your current account for gateway sync.',
+                      description: '',
                       wide: wide,
                       content: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -392,12 +382,11 @@ class SettingsPage extends GetView<AuthController> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 12),
                     _section(
                       context,
                       title: 'Sign-in & security',
-                      description:
-                          'Manage the password linked to this account.',
+                      description: '',
                       wide: wide,
                       content: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,11 +394,11 @@ class SettingsPage extends GetView<AuthController> {
                       ),
                     ),
                     if (!guest && user != null) ...[
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
                       _section(
                         context,
                         title: 'Session',
-                        description: 'End this session on this device.',
+                        description: '',
                         wide: wide,
                         content: Align(
                           alignment: Alignment.centerLeft,
@@ -422,12 +411,11 @@ class SettingsPage extends GetView<AuthController> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
                       _section(
                         context,
                         title: 'Delete account',
-                        description:
-                            'Permanently remove this account and its data.',
+                        description: '',
                         wide: wide,
                         content: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

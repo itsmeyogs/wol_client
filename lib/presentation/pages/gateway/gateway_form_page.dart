@@ -77,7 +77,7 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
       appBar: AppBar(title: Text(isEdit ? 'Edit gateway' : 'Add gateway')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
+          constraints: const BoxConstraints(maxWidth: 560),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
             children: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:get/get.dart';
 
 import '../../../core/responsive/app_responsive.dart';
@@ -27,6 +28,21 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diagnostics'),
+        actions: [
+          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
+            Obx(
+              () => IconButton(
+                tooltip: 'Refresh diagnostics',
+                onPressed: controller.isLoading.value ? null : controller.load,
+                icon: controller.isLoading.value
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+              ),
+            ),
+        ],
       ),
       body: Obx(() {
         if (controller.isLoading.value &&
@@ -35,32 +51,38 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
         }
         final message = controller.error.value;
         if (message != null && controller.diagnostics.value == null) {
-          return _ErrorState(message: message, onRetry: controller.load);
+          return _RefreshErrorState(message: message, onRetry: controller.load);
         }
         final snapshot = controller.diagnostics.value;
         if (snapshot == null || snapshot.isEmpty) {
           return _EmptyState(onRetry: controller.load);
         }
-        return RefreshIndicator(
-          onRefresh: controller.load,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(padding, 16, padding, 32),
-            children: [
-              if (message != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+        final content = Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: AppResponsive.contentWidth(context),
+            ),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(padding, 16, padding, 32),
+              children: [
+                if (message != null) ...[
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                _GeneralSection(group: snapshot.general),
+                _ThermalSection(thermal: snapshot.thermal),
+                _ServiceModeSection(mode: snapshot.serviceMode),
               ],
-              const SizedBox(height: 12),
-              _GeneralSection(group: snapshot.general),
-              _ThermalSection(thermal: snapshot.thermal),
-              _ServiceModeSection(mode: snapshot.serviceMode),
-            ],
+            ),
           ),
         );
+        return RefreshIndicator(onRefresh: controller.load, child: content);
       }),
     );
   }
@@ -107,7 +129,9 @@ class _ThermalSection extends StatelessWidget {
     title: 'Thermal',
     children: [
       _Field(field: DiagnosticsField('Status', _label(thermal.status))),
-      _Field(field: DiagnosticsField('Available', thermal.available ? 'Yes' : 'No')),
+      _Field(
+        field: DiagnosticsField('Available', thermal.available ? 'Yes' : 'No'),
+      ),
       _Field(field: DiagnosticsField('Source', _label(thermal.source))),
       _Field(field: DiagnosticsField('Mode', _label(thermal.mode))),
       if (thermal.batteryTemperatureCelsius != null)
@@ -119,7 +143,10 @@ class _ThermalSection extends StatelessWidget {
         ),
       if (thermal.thermalStatus != null)
         _Field(
-          field: DiagnosticsField('Android thermal status', _label(thermal.thermalStatus!)),
+          field: DiagnosticsField(
+            'Android thermal status',
+            _label(thermal.thermalStatus!),
+          ),
         ),
       if (thermal.thermalHeadroom != null)
         _Field(
@@ -141,7 +168,9 @@ class _ThermalSection extends StatelessWidget {
         ),
       ),
       if (!thermal.available && thermal.sensors.isEmpty)
-        const _Field(field: DiagnosticsField('Temperature data', 'Unavailable')),
+        const _Field(
+          field: DiagnosticsField('Temperature data', 'Unavailable'),
+        ),
     ],
   );
 
@@ -149,12 +178,15 @@ class _ThermalSection extends StatelessWidget {
       .replaceAll('_', ' ')
       .toLowerCase()
       .split(' ')
-      .map((part) => part.isEmpty ? part : '${part[0].toUpperCase()}${part.substring(1)}')
+      .map(
+        (part) => part.isEmpty
+            ? part
+            : '${part[0].toUpperCase()}${part.substring(1)}',
+      )
       .join(' ');
 
-  String _time(int milliseconds) => DateTime.fromMillisecondsSinceEpoch(
-    milliseconds,
-  ).toLocal().toString();
+  String _time(int milliseconds) =>
+      DateTime.fromMillisecondsSinceEpoch(milliseconds).toLocal().toString();
 }
 
 class _DiagnosticsCard extends StatelessWidget {
@@ -164,18 +196,15 @@ class _DiagnosticsCard extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: 16),
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const Divider(height: 20),
-          ...children,
-        ],
-      ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        ...children,
+      ],
     ),
   );
 }
@@ -285,6 +314,26 @@ class _ErrorState extends StatelessWidget {
           FilledButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
+    ),
+  );
+}
+
+class _RefreshErrorState extends StatelessWidget {
+  const _RefreshErrorState({required this.message, required this.onRetry});
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) => RefreshIndicator(
+    onRefresh: onRetry,
+    child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(
+          height: MediaQuery.sizeOf(context).height * .7,
+          child: _ErrorState(message: message, onRetry: onRetry),
+        ),
+      ],
     ),
   );
 }

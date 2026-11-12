@@ -38,6 +38,7 @@ class DeviceController extends GetxController {
   final wakeLoadingIds = <int>{}.obs;
 
   Future<void> load() async {
+    if (isLoading.value) return;
     final gateway = _session.activeGateway.value;
     if (gateway == null) return;
     isLoading.value = true;
@@ -139,6 +140,7 @@ class DeviceController extends GetxController {
   }
 
   Future<void> discover() async {
+    if (isDiscovering.value) return;
     final gateway = _session.activeGateway.value;
     if (gateway == null) return;
     isDiscovering.value = true;

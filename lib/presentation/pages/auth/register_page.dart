@@ -64,7 +64,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   const Icon(Icons.check_circle_outline, size: 64),
                   const SizedBox(height: 16),
                   Text(
-                    'Pendaftaran berhasil',
+                    'Account created',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
@@ -76,7 +76,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: () => Get.off(() => const LoginPage()),
-                    child: const Text('Kembali ke Sign in'),
+                    child: const Text('Return to sign in'),
                   ),
                 ],
               );

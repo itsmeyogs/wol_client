@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:get/get.dart';
 import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
@@ -47,6 +48,19 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
         title: const Text('Wake device?'),
         content: Text('Send a magic packet to ${device.name}?'),
         actions: [
+          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
+            Obx(
+              () => IconButton(
+                tooltip: 'Refresh devices',
+                onPressed: controller.isLoading.value ? null : controller.load,
+                icon: controller.isLoading.value
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+              ),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
@@ -98,6 +112,14 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
       appBar: AppBar(
         title: Text(gateway?.name ?? 'Gateway'),
         actions: [
+          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
+            Obx(
+              () => IconButton(
+                tooltip: 'Refresh devices',
+                onPressed: controller.isLoading.value ? null : controller.load,
+                icon: const Icon(Icons.refresh),
+              ),
+            ),
           IconButton(
             onPressed: () => Get.to(() => const DiagnosticsPage()),
             tooltip: 'Gateway diagnostics',
@@ -115,15 +137,29 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
           return const Center(child: CircularProgressIndicator());
         }
         if (controller.error.value != null && controller.devices.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+          return RefreshIndicator(
+            onRefresh: controller.load,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                Text(controller.error.value!, textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: controller.load,
-                  child: const Text('Retry'),
+                SizedBox(
+                  height: MediaQuery.sizeOf(context).height * .7,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          controller.error.value!,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: controller.load,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -158,60 +194,63 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
             ),
           );
         }
-        return RefreshIndicator(
-          onRefresh: controller.load,
-          child: ListView.separated(
-            padding: EdgeInsets.fromLTRB(padding, 12, padding, 100),
-            itemCount: controller.devices.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final device = controller.devices[index];
-              return Card(
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => _open(device),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                device.name,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                            ),
-                            _StatusBadge(status: device.status),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(device.ipAddress),
-                        Text(device.macAddress),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Last checked: ${_time(device.lastCheckAt)}',
-                              ),
-                            ),
-                            if (device.status != 'ONLINE')
-                              TextButton.icon(
-                                onPressed: () => _wake(device),
-                                icon: const Icon(Icons.power_settings_new),
-                                label: const Text('Wake up'),
-                              ),
-                          ],
-                        ),
-                      ],
+        final content = ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: AppResponsive.contentWidth(context),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 900 ? 2 : 1;
+              final rows = <Widget>[];
+              for (
+                var index = 0;
+                index < controller.devices.length;
+                index += columns
+              ) {
+                final rowDevices = controller.devices
+                    .skip(index)
+                    .take(columns)
+                    .toList();
+                final children = <Widget>[];
+                for (var column = 0; column < rowDevices.length; column++) {
+                  if (column > 0) children.add(const SizedBox(width: 16));
+                  final device = rowDevices[column];
+                  children.add(
+                    Expanded(
+                      child: _DeviceTile(
+                        device: device,
+                        onOpen: () => _open(device),
+                        onWake: () => _wake(device),
+                        time: _time(device.lastCheckAt),
+                      ),
                     ),
+                  );
+                }
+                if (rowDevices.length < columns)
+                  children.add(const Expanded(child: SizedBox()));
+                rows.add(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: children,
                   ),
-                ),
+                );
+              }
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(padding, 16, padding, 100),
+                children: [
+                  for (var i = 0; i < rows.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 12),
+                    rows[i],
+                  ],
+                ],
               );
             },
           ),
+        );
+        return RefreshIndicator(
+          onRefresh: controller.load,
+          child: Center(child: content),
         );
       }),
     );
@@ -222,6 +261,67 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
     final local = value.toLocal();
     return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }
+}
+
+class _DeviceTile extends StatelessWidget {
+  const _DeviceTile({
+    required this.device,
+    required this.onOpen,
+    required this.onWake,
+    required this.time,
+  });
+  final Device device;
+  final VoidCallback onOpen;
+  final VoidCallback onWake;
+  final String time;
+  @override
+  Widget build(BuildContext context) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onOpen,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    device.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                _StatusBadge(status: device.status),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SelectableText(
+              '${device.ipAddress}\n${device.macAddress}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Last checked: $time',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                if (device.status != 'ONLINE')
+                  TextButton.icon(
+                    onPressed: onWake,
+                    icon: const Icon(Icons.power_settings_new),
+                    label: const Text('Wake'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _StatusBadge extends StatelessWidget {

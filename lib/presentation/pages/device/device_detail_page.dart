@@ -229,7 +229,7 @@ class _Details extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 680),
+      constraints: const BoxConstraints(maxWidth: 920),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
         children: [
@@ -245,22 +245,47 @@ class _Details extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          _Detail(label: 'IP address', value: device.ipAddress),
-          _Detail(label: 'MAC address', value: device.macAddress),
-          _Detail(label: 'Broadcast', value: device.broadcastAddress),
-          _Detail(label: 'WoL port', value: '${device.wolPort}'),
-          _Detail(label: 'Check method', value: device.statusCheckMethod),
-          _Detail(label: 'Check port', value: '${device.statusCheckPort}'),
-          _Detail(label: 'Last checked', value: _time(device.lastCheckAt)),
-          _Detail(
-            label: 'Latency',
-            value: device.lastCheckLatencyMs == null
-                ? 'Not provided'
-                : '${device.lastCheckLatencyMs} ms',
-          ),
-          _Detail(
-            label: 'Reason',
-            value: device.lastCheckReason ?? 'Not provided',
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 680 ? 2 : 1;
+              final details = [
+                _Detail(label: 'IP address', value: device.ipAddress),
+                _Detail(label: 'MAC address', value: device.macAddress),
+                _Detail(label: 'Broadcast', value: device.broadcastAddress),
+                _Detail(label: 'WoL port', value: '${device.wolPort}'),
+                _Detail(label: 'Check method', value: device.statusCheckMethod),
+                _Detail(
+                  label: 'Check port',
+                  value: '${device.statusCheckPort}',
+                ),
+                _Detail(
+                  label: 'Last checked',
+                  value: _time(device.lastCheckAt),
+                ),
+                _Detail(
+                  label: 'Latency',
+                  value: device.lastCheckLatencyMs == null
+                      ? 'Not provided'
+                      : '${device.lastCheckLatencyMs} ms',
+                ),
+                _Detail(
+                  label: 'Reason',
+                  value: device.lastCheckReason ?? 'Not provided',
+                ),
+              ];
+              if (columns == 1) return Column(children: details);
+              return Wrap(
+                spacing: 32,
+                runSpacing: 4,
+                children: [
+                  for (final detail in details)
+                    SizedBox(
+                      width: (constraints.maxWidth - 32) / 2,
+                      child: detail,
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 20),
           Obx(

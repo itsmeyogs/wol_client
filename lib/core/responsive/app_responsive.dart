@@ -1,18 +1,30 @@
 import 'package:flutter/widgets.dart';
 
-class AppResponsive {
-  const AppResponsive._();
-  static bool isMobile(BuildContext context) =>
-      MediaQuery.sizeOf(context).width < 600;
-  static bool isTablet(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    return width >= 600 && width < 1024;
-  }
+enum AppLayout { mobile, tablet, desktop }
 
-  static double horizontalPadding(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    if (width >= 1024) return 48;
-    if (width >= 600) return 32;
-    return 20;
-  }
+abstract final class AppResponsive {
+  static AppLayout layout(BuildContext context) =>
+      layoutForWidth(MediaQuery.sizeOf(context).width);
+
+  static AppLayout layoutForWidth(double width) => width < 600
+      ? AppLayout.mobile
+      : width < 1024
+      ? AppLayout.tablet
+      : AppLayout.desktop;
+
+  static bool isMobile(BuildContext context) =>
+      layout(context) == AppLayout.mobile;
+
+  static double horizontalPadding(BuildContext context) =>
+      switch (layout(context)) {
+        AppLayout.mobile => 20,
+        AppLayout.tablet => 32,
+        AppLayout.desktop => 40,
+      };
+
+  static double contentWidth(BuildContext context) => switch (layout(context)) {
+    AppLayout.mobile => double.infinity,
+    AppLayout.tablet => 920,
+    AppLayout.desktop => 1200,
+  };
 }

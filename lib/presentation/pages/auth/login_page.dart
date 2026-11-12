@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _signInEmail() async {
     if (await controller.signInEmail(email.text, password.text)) {
-      AppSnackbar.success('Login berhasil.');
+      AppSnackbar.success('Signed in successfully.');
       Get.offAll(() => const GatewayListPage());
     } else if (controller.error.value != null) {
       AppSnackbar.error(controller.error.value!);
@@ -30,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _signInGoogle() async {
     if (await controller.signInGoogle()) {
-      AppSnackbar.success('Login Google berhasil.');
+      AppSnackbar.success('Google sign-in complete.');
       Get.offAll(() => const GatewayListPage());
     } else if (controller.needsGoogleLinkPassword) {
       await _completeGoogleLink();

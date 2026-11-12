@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:get/get.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
@@ -45,7 +46,24 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Discover devices')),
+    appBar: AppBar(
+      title: const Text('Discover devices'),
+      actions: [
+        if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
+          Obx(
+            () => IconButton(
+              tooltip: 'Scan again',
+              onPressed: controller.isDiscovering.value ? null : _refresh,
+              icon: controller.isDiscovering.value
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+            ),
+          ),
+      ],
+    ),
     body: Obx(() {
       if (controller.isDiscovering.value) {
         return const Center(child: CircularProgressIndicator());
@@ -54,53 +72,59 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
         return _RefreshMessageState(
           onRefresh: _refresh,
           message: controller.discoveryError.value!,
-          action: OutlinedButton.icon(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Scan again'),
-          ),
+          action: _isDesktop
+              ? OutlinedButton.icon(
+                  onPressed: _refresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Scan again'),
+                )
+              : const SizedBox.shrink(),
         );
       }
       if (controller.discovered.isEmpty) {
         return _RefreshMessageState(
           onRefresh: _refresh,
           message: 'No devices found on the LAN.',
-          action: OutlinedButton.icon(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Scan again'),
-          ),
+          action: _isDesktop
+              ? OutlinedButton.icon(
+                  onPressed: _refresh,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Scan again'),
+                )
+              : const SizedBox.shrink(),
         );
       }
-      return RefreshIndicator(
-        onRefresh: _refresh,
-        child: ListView.separated(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          itemCount: controller.discovered.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final device = controller.discovered[index];
-            return Card(
-              child: ListTile(
-                onTap: () => _openResult(device),
-                leading: const Icon(Icons.computer_outlined),
-                title: Text(
-                  device.hostName?.isNotEmpty == true
-                      ? device.hostName!
-                      : device.ipAddress,
+      final content = Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            itemCount: controller.discovered.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final device = controller.discovered[index];
+              return Card(
+                child: ListTile(
+                  onTap: () => _openResult(device),
+                  title: Text(
+                    device.hostName?.isNotEmpty == true
+                        ? device.hostName!
+                        : device.ipAddress,
+                  ),
+                  subtitle: Text(
+                    '${device.ipAddress} • ${device.macAddress ?? 'MAC unavailable'}',
+                  ),
+                  trailing: device.openPorts.isEmpty
+                      ? const Icon(Icons.chevron_right)
+                      : Text(device.openPorts.join(', ')),
                 ),
-                subtitle: Text(
-                  '${device.ipAddress} • ${device.macAddress ?? 'MAC unavailable'}',
-                ),
-                trailing: device.openPorts.isEmpty
-                    ? const Icon(Icons.chevron_right)
-                    : Text(device.openPorts.join(', ')),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       );
+      return RefreshIndicator(onRefresh: _refresh, child: content);
     }),
     bottomNavigationBar: SafeArea(
       minimum: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -112,6 +136,9 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
     ),
   );
 }
+
+bool get _isDesktop =>
+    kIsWeb || defaultTargetPlatform == TargetPlatform.windows;
 
 class _MessageState extends StatelessWidget {
   const _MessageState({required this.message, required this.action});

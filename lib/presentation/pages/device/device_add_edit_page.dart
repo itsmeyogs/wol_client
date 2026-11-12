@@ -98,7 +98,7 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
       appBar: AppBar(title: Text(edit ? 'Edit device' : 'Add device')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
+          constraints: const BoxConstraints(maxWidth: 560),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
             children: [

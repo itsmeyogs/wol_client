@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:get/get.dart';
 import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
@@ -29,6 +30,25 @@ class GatewayListPage extends GetView<GatewayController> {
         title: const Text('Delete gateway?'),
         content: Text('Remove ${gateway.name} from this device?'),
         actions: [
+          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
+            Obx(() {
+              final syncing = Get.find<GatewaySyncController>().isSyncing.value;
+              return IconButton(
+                tooltip: 'Refresh gateways',
+                onPressed: controller.isLoading.value || syncing
+                    ? null
+                    : controller.load,
+                icon: const Icon(Icons.refresh),
+              );
+            }),
+          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
+            Obx(
+              () => IconButton(
+                tooltip: 'Refresh gateways',
+                onPressed: controller.isLoading.value ? null : controller.load,
+                icon: const Icon(Icons.refresh),
+              ),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
@@ -118,6 +138,19 @@ class GatewayListPage extends GetView<GatewayController> {
       appBar: AppBar(
         title: const Text('WoL gateways'),
         actions: [
+          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
+            Obx(
+              () => IconButton(
+                tooltip: 'Refresh gateways',
+                onPressed: controller.isLoading.value ? null : controller.load,
+                icon: controller.isLoading.value
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+              ),
+            ),
           Obx(() {
             final auth = Get.find<AuthController>();
             if (auth.mode.value != AuthMode.authenticated) {
@@ -166,8 +199,10 @@ class GatewayListPage extends GetView<GatewayController> {
         if (controller.gateways.isEmpty) {
           return _EmptyGateways(onAdd: () => _form(null));
         }
-        return RefreshIndicator(
-          onRefresh: controller.load,
+        final content = ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: AppResponsive.contentWidth(context),
+          ),
           child: ListView.separated(
             padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 100),
             itemCount: controller.gateways.length,
@@ -222,6 +257,10 @@ class GatewayListPage extends GetView<GatewayController> {
               );
             },
           ),
+        );
+        return RefreshIndicator(
+          onRefresh: controller.load,
+          child: Center(child: content),
         );
       }),
     );
