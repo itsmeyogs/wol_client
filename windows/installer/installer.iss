@@ -1,7 +1,7 @@
 ; Inno Setup Script for WoL Gateway Client
-#define MyAppName "WoL Gateway Client"
+#define MyAppName "WoL Client"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "WoL Gateway"
+#define MyAppPublisher "itsmeYogs"
 #define MyAppExeName "wol_client.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".wol"
