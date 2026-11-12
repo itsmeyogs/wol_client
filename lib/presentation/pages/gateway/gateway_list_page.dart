@@ -70,6 +70,65 @@ class GatewayListPage extends GetView<GatewayController> {
     Get.offAll(() => const LoginPage());
   }
 
+  Future<void> _linkProvider(BuildContext context) async {
+    final auth = Get.find<AuthController>();
+    if (!auth.canSetPassword) return;
+    final linked = await _setPasswordDialog(context, auth);
+    if (linked == true) AppSnackbar.success('Sign-in method linked.');
+    if (linked == false && auth.error.value != null) {
+      AppSnackbar.error(auth.error.value!);
+    }
+  }
+
+  Future<bool?> _setPasswordDialog(
+    BuildContext context,
+    AuthController auth,
+  ) async {
+    final password = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set an email password'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('A password will be added to ${auth.currentUser?.email}.'),
+              TextFormField(
+                controller: password,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password'),
+                validator: (v) => v == null || v.length < 6
+                    ? 'Password must contain at least 6 characters.'
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.pop(
+                context,
+                await auth.linkEmailPassword(password.text),
+              );
+            },
+            child: const Text('Set password'),
+          ),
+        ],
+      ),
+    );
+    password.dispose();
+    return result;
+  }
+
   Future<void> _sync() async {
     final sync = Get.find<GatewaySyncController>();
     await sync.sync();
@@ -148,6 +207,14 @@ class GatewayListPage extends GetView<GatewayController> {
                   onPressed: _signOut,
                   icon: const Icon(Icons.logout),
                 ),
+                if (auth.canSetPassword)
+                  IconButton(
+                    tooltip: 'Set email password',
+                    onPressed: auth.isBusy.value
+                        ? null
+                        : () => _linkProvider(context),
+                    icon: const Icon(Icons.password),
+                  ),
               ],
             );
           }),

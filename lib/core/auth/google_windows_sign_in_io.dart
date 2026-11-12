@@ -11,6 +11,11 @@ const _googleWebClientId =
 const _windowsOAuthPort = 49152;
 
 Future<UserCredential?> signInGoogleWindows(FirebaseAuth auth) async {
+  final credential = await getGoogleCredentialWindows();
+  return credential == null ? null : auth.signInWithCredential(credential);
+}
+
+Future<AuthCredential?> getGoogleCredentialWindows() async {
   final server = await HttpServer.bind(
     InternetAddress.loopbackIPv4,
     _windowsOAuthPort,
@@ -76,8 +81,9 @@ Future<UserCredential?> signInGoogleWindows(FirebaseAuth auth) async {
       throw StateError('Google authorization returned no credential.');
     }
 
-    return auth.signInWithCredential(
-      GoogleAuthProvider.credential(accessToken: accessToken, idToken: idToken),
+    return GoogleAuthProvider.credential(
+      accessToken: accessToken,
+      idToken: idToken,
     );
   } on TimeoutException {
     return null;

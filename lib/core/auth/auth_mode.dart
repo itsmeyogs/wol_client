@@ -1,1 +1,8 @@
-enum AuthMode { loading, login, guest, authenticated, unavailable }
+enum AuthMode {
+  loading,
+  login,
+  verification,
+  guest,
+  authenticated,
+  unavailable,
+}

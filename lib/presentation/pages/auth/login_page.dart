@@ -32,6 +32,46 @@ class _LoginPageState extends State<LoginPage> {
     if (await controller.signInGoogle()) {
       AppSnackbar.success('Login Google berhasil.');
       Get.offAll(() => const GatewayListPage());
+    } else if (controller.needsGoogleLinkPassword) {
+      await _completeGoogleLink();
+    } else if (controller.error.value != null) {
+      AppSnackbar.error(controller.error.value!);
+    }
+  }
+
+  Future<void> _completeGoogleLink() async {
+    password.clear();
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm your account'),
+        content: TextField(
+          controller: password,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Email account password',
+          ),
+          onSubmitted: (_) => Navigator.pop(context, true),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true) return;
+    if (await controller.completeGoogleLink(password.text)) {
+      AppSnackbar.success(
+        'Google linked. You can now sign in with either method.',
+      );
+      Get.offAll(() => const GatewayListPage());
     } else if (controller.error.value != null) {
       AppSnackbar.error(controller.error.value!);
     }

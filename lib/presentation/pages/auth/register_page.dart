@@ -39,7 +39,9 @@ class _RegisterPageState extends State<RegisterPage> {
     }
     if (await controller.registerEmail(email.text, password.text)) {
       setState(() => registered = true);
-      AppSnackbar.success('Pendaftaran berhasil. Silakan masuk.');
+      AppSnackbar.success(
+        'Registration complete. Verify your email before signing in.',
+      );
     } else if (controller.error.value != null) {
       AppSnackbar.error(controller.error.value!);
     }
@@ -68,7 +70,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Akun ${email.text.trim()} sudah dibuat. Silakan masuk.',
+                    'Account ${email.text.trim()} created. Open the verification link sent to your inbox before signing in.',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),

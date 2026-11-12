@@ -6,3 +6,6 @@ import 'google_windows_sign_in_stub.dart'
 
 Future<UserCredential?> signInGoogleWindows(FirebaseAuth auth) =>
     platform.signInGoogleWindows(auth);
+
+Future<AuthCredential?> getGoogleCredentialWindows() =>
+    platform.getGoogleCredentialWindows();

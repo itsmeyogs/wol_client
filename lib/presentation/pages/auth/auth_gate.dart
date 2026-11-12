@@ -5,6 +5,7 @@ import '../../../core/auth/auth_mode.dart';
 import '../../controllers/auth_controller.dart';
 import '../gateway/gateway_list_page.dart';
 import 'login_page.dart';
+import 'email_verification_page.dart';
 
 class AuthGate extends GetView<AuthController> {
   const AuthGate({super.key});
@@ -17,6 +18,8 @@ class AuthGate extends GetView<AuthController> {
         return const GatewayListPage();
       case AuthMode.login:
         return const LoginPage();
+      case AuthMode.verification:
+        return const EmailVerificationPage();
       case AuthMode.unavailable:
         return _UnavailableAuth(error: controller.error.value);
       case AuthMode.loading:

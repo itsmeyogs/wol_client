@@ -21,6 +21,27 @@ class AuthController extends GetxController {
   final mode = AuthMode.loading.obs;
   final error = RxnString();
   final isBusy = false.obs;
+  User? get currentUser => _auth?.currentUser;
+  AuthCredential? _pendingGoogleCredential;
+  bool get needsGoogleLinkPassword => _pendingGoogleCredential != null;
+  bool get needsEmailVerification =>
+      _auth?.currentUser?.emailVerified == false &&
+      _auth?.currentUser?.providerData.any((p) => p.providerId == 'password') ==
+          true &&
+      _auth?.currentUser?.providerData.any(
+            (p) => p.providerId == 'google.com',
+          ) !=
+          true;
+  DateTime? _lastVerificationSent;
+  bool get canSetPassword =>
+      _auth?.currentUser?.providerData.any(
+            (provider) => provider.providerId == 'google.com',
+          ) ==
+          true &&
+      _auth?.currentUser?.providerData.any(
+            (provider) => provider.providerId == 'password',
+          ) !=
+          true;
 
   @override
   void onInit() {
@@ -42,6 +63,11 @@ class AuthController extends GetxController {
       }
       final user = auth.currentUser;
       if (user != null) {
+        await user.reload();
+        if (needsEmailVerification) {
+          mode.value = AuthMode.verification;
+          return;
+        }
         mode.value = AuthMode.authenticated;
         _syncGateways();
       } else if (guest) {
@@ -78,28 +104,79 @@ class AuthController extends GetxController {
 
   Future<bool> signInEmail(String email, String password) async {
     return _run('email sign-in', () async {
-      await (_auth?.signInWithEmailAndPassword(
-            email: email.trim(),
-            password: password,
-          ) ??
-          Future<void>.error('Firebase is unavailable.'));
+      final result =
+          await (_auth?.signInWithEmailAndPassword(
+                email: email.trim(),
+                password: password,
+              ) ??
+              Future<UserCredential>.error('Firebase is unavailable.'));
+      if (result.user?.emailVerified == false &&
+          !needsGoogleTrust(result.user)) {
+        mode.value = AuthMode.verification;
+        throw StateError('Verify your email before continuing.');
+      }
       await (await _prefs).remove(_guestKey);
       mode.value = AuthMode.authenticated;
       _syncGateways();
     });
   }
 
+  bool needsGoogleTrust(User? user) =>
+      user?.providerData.any(
+        (provider) => provider.providerId == 'google.com',
+      ) ==
+      true;
+
   Future<bool> registerEmail(String email, String password) async {
     return _run('account registration', () async {
-      await (_auth?.createUserWithEmailAndPassword(
-            email: email.trim(),
-            password: password,
-          ) ??
-          Future<void>.error('Firebase is unavailable.'));
+      final result =
+          await (_auth?.createUserWithEmailAndPassword(
+                email: email.trim(),
+                password: password,
+              ) ??
+              Future<UserCredential>.error('Firebase is unavailable.'));
+      await result.user?.sendEmailVerification();
       await (await _prefs).remove(_guestKey);
       await _auth?.signOut();
       mode.value = AuthMode.login;
     });
+  }
+
+  Future<bool> resendVerificationEmail() async {
+    final user = _auth?.currentUser;
+    if (user == null) return false;
+    final lastSent = _lastVerificationSent;
+    if (lastSent != null &&
+        DateTime.now().difference(lastSent).inSeconds < 60) {
+      error.value = 'Wait before requesting another verification email.';
+      return false;
+    }
+    return _run('verification email resend', () async {
+      await user.sendEmailVerification();
+      _lastVerificationSent = DateTime.now();
+    });
+  }
+
+  Future<bool> checkEmailVerification() async {
+    final user = _auth?.currentUser;
+    if (user == null) return false;
+    await user.reload();
+    if (_auth?.currentUser?.emailVerified != true) {
+      error.value =
+          'Email is not verified yet. Check your inbox and spam folder.';
+      return false;
+    }
+    error.value = null;
+    mode.value = AuthMode.authenticated;
+    await (await _prefs).remove(_guestKey);
+    _syncGateways();
+    return true;
+  }
+
+  Future<void> signOutUnverified() async {
+    await _auth?.signOut();
+    error.value = null;
+    mode.value = AuthMode.login;
   }
 
   Future<bool> signInGoogle() async {
@@ -116,6 +193,65 @@ class AuthController extends GetxController {
       await (await _prefs).remove(_guestKey);
       mode.value = AuthMode.authenticated;
       _syncGateways();
+    });
+  }
+
+  Future<bool> completeGoogleLink(String password) async {
+    final auth = _auth;
+    final credential = _pendingGoogleCredential;
+    if (auth == null || credential == null) return false;
+    return _run('Google account linking', () async {
+      // Sign into the verified existing password account, then attach Google.
+      final targetEmail = _pendingGoogleEmail;
+      if (targetEmail == null)
+        throw StateError('Google account email is unavailable.');
+      final existing = await auth.signInWithEmailAndPassword(
+        email: targetEmail,
+        password: password,
+      );
+      if (existing.user?.emailVerified != true) {
+        await existing.user?.sendEmailVerification();
+        await auth.signOut();
+        throw StateError(
+          'Verify your email using the link we just sent, then try Google sign-in again.',
+        );
+      }
+      await existing.user!.linkWithCredential(credential);
+      _pendingGoogleCredential = null;
+      _pendingGoogleEmail = null;
+      await (await _prefs).remove(_guestKey);
+      mode.value = AuthMode.authenticated;
+      _syncGateways();
+    });
+  }
+
+  String? _pendingGoogleEmail;
+
+  Future<bool> linkEmailPassword(String password) async {
+    return _run('email provider linking', () async {
+      final user = _auth?.currentUser;
+      if (user == null) throw StateError('Sign in before linking an account.');
+      await user.linkWithCredential(
+        EmailAuthProvider.credential(email: user.email!, password: password),
+      );
+    });
+  }
+
+  Future<bool> linkGoogle() async {
+    return _run('Google provider linking', () async {
+      final auth = _auth;
+      final user = auth?.currentUser;
+      if (auth == null || user == null) {
+        throw StateError('Sign in before linking an account.');
+      }
+      final credential =
+          !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
+          ? await getGoogleCredentialWindows()
+          : kIsWeb
+          ? (await auth.signInWithPopup(GoogleAuthProvider())).credential
+          : (await auth.signInWithProvider(GoogleAuthProvider())).credential;
+      if (credential == null) throw StateError('Google sign-in was cancelled.');
+      await user.linkWithCredential(credential);
     });
   }
 
@@ -152,12 +288,20 @@ class AuthController extends GetxController {
       AppLogger.instance.info('$operation succeeded');
       return true;
     } on FirebaseAuthException catch (exception) {
+      if (operation == 'Google sign-in' &&
+          exception.code == 'account-exists-with-different-credential') {
+        _pendingGoogleCredential = exception.credential;
+        _pendingGoogleEmail = exception.email;
+      }
       AppLogger.instance.warning(
         '$operation failed: FirebaseAuthException(code=${exception.code})',
         exception,
         exception.stackTrace,
       );
       error.value = _message(exception, operation);
+      return false;
+    } on StateError catch (exception) {
+      error.value = exception.message;
       return false;
     } catch (exception, stackTrace) {
       AppLogger.instance.warning(
@@ -181,13 +325,14 @@ class AuthController extends GetxController {
     'user-not-found' => 'Email or password is incorrect.',
     'invalid-email' => 'Enter a valid email address.',
     'email-already-in-use' => 'An account already exists for this email.',
+    'credential-already-in-use' || 'account-exists-with-different-credential' =>
+      'This provider belongs to another account. Sign in to that account first; accounts cannot be merged automatically.',
+    'provider-already-linked' => 'This sign-in method is already linked.',
     'weak-password' => 'Choose a stronger password.',
     'too-many-requests' => 'Too many attempts. Try again later.',
     'operation-not-allowed' => 'This sign-in method is not enabled.',
     'unknown-error' when operation == 'Google sign-in' =>
       'Google sign-in failed on Windows. Check the Firebase OAuth configuration.',
-    'account-exists-with-different-credential' =>
-      'An account already exists with another sign-in method.',
     'user-disabled' => 'This account is disabled.',
     'network-request-failed' => 'Network connection failed.',
     'popup-closed-by-user' ||
