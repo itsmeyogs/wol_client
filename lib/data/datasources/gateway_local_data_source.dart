@@ -81,12 +81,20 @@ class GatewayLocalDataSource {
 
   Future<void> upsertFromSync(Gateway gateway) async {
     final db = await _database.database;
-    final rows = await db.query(
+    var rows = await db.query(
       'gateways',
       columns: ['id'],
       where: 'sync_id = ?',
       whereArgs: [gateway.syncId],
     );
+    if (rows.isEmpty) {
+      rows = await db.query(
+        'gateways',
+        columns: ['id'],
+        where: 'lower(scheme) = ? AND lower(rtrim(base_url, "/")) = ?',
+        whereArgs: [gateway.scheme.toLowerCase(), gateway.baseUrl.toLowerCase().replaceAll(RegExp(r'/+$'), '')],
+      );
+    }
     if (rows.isEmpty) {
       await insert(gateway);
     } else {

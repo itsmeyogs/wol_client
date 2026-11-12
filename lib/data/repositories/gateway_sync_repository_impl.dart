@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 
 import '../datasources/gateway_cloud_data_source.dart';
 import '../datasources/gateway_local_data_source.dart';
+import '../models/gateway.dart';
 import '../../domain/repositories/gateway_sync_repository.dart';
 
 class GatewaySyncRepositoryImpl implements GatewaySyncRepository {
@@ -16,6 +17,7 @@ class GatewaySyncRepositoryImpl implements GatewaySyncRepository {
     final cloud = await _cloud.getAll();
     final deletedIds = await _cloud.getDeletedIds();
     final cloudById = {for (final gateway in cloud) gateway.syncId!: gateway};
+    final cloudByBaseUrl = {for (final gateway in cloud) _baseUrlKey(gateway): gateway};
 
     for (final syncId in tombstones) {
       try {
@@ -41,14 +43,26 @@ class GatewaySyncRepositoryImpl implements GatewaySyncRepository {
     };
     for (final gateway in localById.values) {
       final remote = cloudById.remove(gateway.syncId);
-      if (remote == null || gateway.updatedAt.isAfter(remote.updatedAt)) {
-        await _cloud.save(gateway);
+      final matchedRemote = remote ?? cloudByBaseUrl[_baseUrlKey(gateway)];
+      if (matchedRemote == null || gateway.updatedAt.isAfter(matchedRemote.updatedAt)) {
+        if (matchedRemote != null) {
+          cloudById.remove(matchedRemote.syncId);
+          final winner = gateway.copyWith(syncId: matchedRemote.syncId);
+          await _cloud.save(winner);
+          await _local.update(winner.copyWith(id: gateway.id));
+        } else {
+          await _cloud.save(gateway);
+        }
       } else {
-        await _local.upsertFromSync(remote);
+        cloudById.remove(matchedRemote.syncId);
+        await _local.upsertFromSync(matchedRemote);
       }
     }
     for (final gateway in cloudById.values) {
       await _local.upsertFromSync(gateway);
     }
   }
+
+  static String _baseUrlKey(Gateway gateway) =>
+      '${gateway.scheme.toLowerCase()}://${gateway.baseUrl.toLowerCase().replaceAll(RegExp(r'/+$'), '')}';
 }

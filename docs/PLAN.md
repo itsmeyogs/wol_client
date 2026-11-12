@@ -440,10 +440,10 @@ docs: define Firebase gateway sync contract
    - Never log tokens, Firestore documents, authorization data, or raw Firebase error payloads.
 
 3. **Merge and persistence**
-   - Pull cloud records, index both sides by `syncId`, then compare `updatedAt`.
+    - Pull cloud records, match by `syncId` first, then by normalized gateway `baseUrl` when IDs differ; compare `updatedAt` for matched records.
    - New local record: upload.
    - New cloud record: insert locally.
-   - Local record newer: upload and retain local values.
+    - Local record newer: upload/replace the cloud record and retain local values.
    - Cloud record newer: replace local values while preserving local `id`.
    - Equal timestamps: cloud wins, giving the tie a deterministic result.
    - Process tombstone deletes before treating a missing cloud document as a new record.
@@ -480,6 +480,7 @@ docs: define Firebase gateway sync contract
 - Token edits propagate without logging the token.
 - Offline local usage remains available.
 - Conflicts resolve deterministically.
+- Sync matches gateways by `syncId` first, then by normalized `baseUrl` when IDs differ; the record with the newer `updatedAt` wins. A newer guest/local record replaces the Firebase record; a newer Firebase record replaces the local record.
 - User data remains isolated by Rules.
 - Existing local gateways receive stable sync IDs without data loss.
 - Offline deletes do not reappear after a later sync.
