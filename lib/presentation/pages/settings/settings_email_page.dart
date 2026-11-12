@@ -5,7 +5,7 @@ import '../../../core/ui/app_snackbar.dart';
 import '../../controllers/settings_email_controller.dart';
 
 class SettingsEmailPage extends StatefulWidget {
-  const SettingsEmailPage({super.key, required this.createAccount});
+  const SettingsEmailPage({super.key, this.createAccount = false});
   final bool createAccount;
 
   @override
@@ -13,6 +13,9 @@ class SettingsEmailPage extends StatefulWidget {
 }
 
 class _SettingsEmailPageState extends State<SettingsEmailPage> {
+  bool get _createAccount =>
+      widget.createAccount ||
+      (Get.arguments is bool ? Get.arguments as bool : false);
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -37,7 +40,7 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
-    final success = widget.createAccount
+    final success = _createAccount
         ? await auth.createAccount(_email.text, _password.text)
         : await auth.signIn(_email.text, _password.text);
     if (!mounted) return;
@@ -48,7 +51,7 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
       return;
     }
     _closeWithMessage(
-      widget.createAccount
+      _createAccount
           ? 'Account created. Verification link sent to your email.'
           : 'Signed in successfully.',
     );
@@ -68,9 +71,7 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(
-        widget.createAccount ? 'Create account with email' : 'Sign in',
-      ),
+      title: Text(_createAccount ? 'Create account with email' : 'Sign in'),
     ),
     body: Center(
       child: ConstrainedBox(
@@ -102,7 +103,7 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
                   enabled: !auth.isBusy.value,
                   obscureText: true,
                   autofillHints: [
-                    widget.createAccount
+                    _createAccount
                         ? AutofillHints.newPassword
                         : AutofillHints.password,
                   ],
@@ -111,7 +112,7 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
                       ? 'Use at least 6 characters.'
                       : null,
                 ),
-                if (widget.createAccount) ...[
+                if (_createAccount) ...[
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _confirmation,
@@ -127,11 +128,9 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: auth.isBusy.value ? null : _submit,
-                  child: Text(
-                    widget.createAccount ? 'Create account' : 'Sign in',
-                  ),
+                  child: Text(_createAccount ? 'Create account' : 'Sign in'),
                 ),
-                if (!widget.createAccount) ...[
+                if (!_createAccount) ...[
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: auth.isBusy.value ? null : _googleSignIn,

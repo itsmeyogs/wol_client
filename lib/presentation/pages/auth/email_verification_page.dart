@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/routes/app_routes.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../controllers/email_verification_controller.dart';
-import '../gateway/gateway_list_page.dart';
-import 'login_page.dart';
 
 class EmailVerificationPage extends GetView<EmailVerificationController> {
   const EmailVerificationPage({super.key});
@@ -43,7 +42,7 @@ class EmailVerificationPage extends GetView<EmailVerificationController> {
                       ? null
                       : () async {
                           if (await controller.check()) {
-                            Get.offAll(() => const GatewayListPage());
+                            Get.offAllNamed(AppRoutes.gateways);
                           } else if (controller.error.value != null) {
                             AppSnackbar.error(controller.error.value!);
                           }
@@ -67,7 +66,7 @@ class EmailVerificationPage extends GetView<EmailVerificationController> {
                       ? null
                       : () async {
                           await controller.logOut();
-                          Get.offAll(() => const LoginPage());
+                          Get.offAllNamed(AppRoutes.login);
                         },
                   child: const Text('Log out and use another account'),
                 ),

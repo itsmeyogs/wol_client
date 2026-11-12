@@ -5,7 +5,7 @@ import '../../../core/ui/app_snackbar.dart';
 import '../../controllers/settings_password_controller.dart';
 
 class SettingsPasswordPage extends StatefulWidget {
-  const SettingsPasswordPage({super.key, required this.setPassword});
+  const SettingsPasswordPage({super.key, this.setPassword = false});
   final bool setPassword;
 
   @override
@@ -13,12 +13,14 @@ class SettingsPasswordPage extends StatefulWidget {
 }
 
 class _SettingsPasswordPageState extends State<SettingsPasswordPage> {
+  bool get _setPassword =>
+      widget.setPassword ||
+      (Get.arguments is bool ? Get.arguments as bool : false);
   final _formKey = GlobalKey<FormState>();
   final _password = TextEditingController();
   final _confirmation = TextEditingController();
   final _currentPassword = TextEditingController();
-  SettingsPasswordController get auth =>
-      Get.find<SettingsPasswordController>();
+  SettingsPasswordController get auth => Get.find<SettingsPasswordController>();
 
   @override
   void dispose() {
@@ -31,16 +33,14 @@ class _SettingsPasswordPageState extends State<SettingsPasswordPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final success = await auth.submit(
-      setPassword: widget.setPassword,
+      setPassword: _setPassword,
       password: _password.text,
       currentPassword: _currentPassword.text,
     );
     if (!mounted) return;
     if (success) {
       Navigator.of(context).pop();
-      AppSnackbar.success(
-        widget.setPassword ? 'Password set.' : 'Password changed.',
-      );
+      AppSnackbar.success(_setPassword ? 'Password set.' : 'Password changed.');
     } else if (auth.error.value != null) {
       AppSnackbar.error(auth.error.value!);
     }
@@ -49,7 +49,7 @@ class _SettingsPasswordPageState extends State<SettingsPasswordPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(widget.setPassword ? 'Set password' : 'Change password'),
+      title: Text(_setPassword ? 'Set password' : 'Change password'),
     ),
     body: Center(
       child: ConstrainedBox(
@@ -61,7 +61,7 @@ class _SettingsPasswordPageState extends State<SettingsPasswordPage> {
               padding: const EdgeInsets.all(24),
               shrinkWrap: true,
               children: [
-                if (!widget.setPassword) ...[
+                if (!_setPassword) ...[
                   TextFormField(
                     controller: _currentPassword,
                     obscureText: true,
@@ -99,7 +99,7 @@ class _SettingsPasswordPageState extends State<SettingsPasswordPage> {
                 FilledButton(
                   onPressed: auth.isBusy.value ? null : _submit,
                   child: Text(
-                    widget.setPassword ? 'Set password' : 'Change password',
+                    _setPassword ? 'Set password' : 'Change password',
                   ),
                 ),
                 if (auth.isBusy.value) ...[

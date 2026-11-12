@@ -21,7 +21,9 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
   @override
   void initState() {
     super.initState();
-    final gateway = widget.gateway;
+    final gateway =
+        widget.gateway ??
+        (Get.arguments is Gateway ? Get.arguments as Gateway : null);
     _name = TextEditingController(text: gateway?.name);
     _baseUrl = TextEditingController(text: gateway?.baseUrl);
     _token = TextEditingController(text: gateway?.apiToken);
@@ -47,7 +49,9 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
     );
     if (!mounted) return;
     if (!saved) {
-      AppSnackbar.error(controller.error.value ?? 'Gateway could not be saved.');
+      AppSnackbar.error(
+        controller.error.value ?? 'Gateway could not be saved.',
+      );
       return;
     }
     Navigator.of(context).pop(controller.isEdit ? 'updated' : 'added');

@@ -3,20 +3,18 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:get/get.dart';
 import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/gateway.dart';
 import '../../controllers/gateway_list_controller.dart';
-import '../settings/settings_page.dart';
-import 'gateway_dashboard_page.dart';
-import 'gateway_form_page.dart';
 import '../../../core/logging/app_logger.dart';
 
 class GatewayListPage extends GetView<GatewayListController> {
   const GatewayListPage({super.key});
   void _open(Gateway gateway) {
     controller.openGateway(gateway);
-    Get.to(() => const GatewayDashboardPage());
+    Get.toNamed(AppRoutes.dashboard);
   }
 
   Future<void> _delete(BuildContext context, Gateway gateway) async {
@@ -55,9 +53,7 @@ class GatewayListPage extends GetView<GatewayListController> {
   }
 
   Future<void> _form(Gateway? gateway) async {
-    final result = await Get.to<String>(
-      () => GatewayFormPage(gateway: gateway),
-    );
+    final result = await Get.toNamed(AppRoutes.gatewayForm, arguments: gateway);
     if (result == 'added') AppSnackbar.success('Gateway added.');
     if (result == 'updated') AppSnackbar.success('Gateway updated.');
   }
@@ -123,7 +119,7 @@ class GatewayListPage extends GetView<GatewayListController> {
           ),
           IconButton(
             tooltip: 'Settings',
-            onPressed: () => Get.to(() => const SettingsPage()),
+            onPressed: () => Get.toNamed(AppRoutes.settings),
             icon: const Icon(Icons.settings_outlined),
           ),
         ],

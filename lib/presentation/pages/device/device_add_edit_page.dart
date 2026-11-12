@@ -27,8 +27,17 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
   @override
   void initState() {
     super.initState();
-    final device = widget.device;
-    final discovery = widget.discovery;
+    final args = Get.arguments;
+    final device =
+        widget.device ??
+        (args is Device
+            ? args
+            : (args is Map ? args['device'] as Device? : null));
+    final discovery =
+        widget.discovery ??
+        (args is DiscoveryDevice
+            ? args
+            : (args is Map ? args['discovery'] as DiscoveryDevice? : null));
     _name = TextEditingController(
       text: device?.name ?? discovery?.hostName ?? '',
     );

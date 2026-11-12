@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/auth/auth_mode.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../controllers/auth_session_controller.dart';
 import '../../controllers/login_controller.dart';
-import '../gateway/gateway_list_page.dart';
-import 'register_page.dart';
-import 'email_verification_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -26,9 +24,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInEmail() async {
     if (await controller.signInEmail(email.text, password.text)) {
       AppSnackbar.success('Signed in successfully.');
-      Get.offAll(() => const GatewayListPage());
+      Get.offAllNamed(AppRoutes.gateways);
     } else if (session.mode.value == AuthMode.verification) {
-      Get.to(() => const EmailVerificationPage());
+      Get.toNamed(AppRoutes.verifyEmail);
     } else if (controller.error.value != null) {
       AppSnackbar.error(controller.error.value!);
     }
@@ -37,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInGoogle() async {
     if (await controller.signInGoogle()) {
       AppSnackbar.success('Google sign-in complete.');
-      Get.offAll(() => const GatewayListPage());
+      Get.offAllNamed(AppRoutes.gateways);
     } else if (controller.needsGoogleLinkPassword) {
       await _completeGoogleLink();
     } else if (controller.error.value != null) {
@@ -77,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
       AppSnackbar.success(
         'Google linked. You can now sign in with either method.',
       );
-      Get.offAll(() => const GatewayListPage());
+      Get.offAllNamed(AppRoutes.gateways);
     } else if (controller.error.value != null) {
       AppSnackbar.error(controller.error.value!);
     }
@@ -85,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _continueAsGuest() async {
     await controller.continueAsGuest();
-    Get.offAll(() => const GatewayListPage());
+    Get.offAllNamed(AppRoutes.gateways);
   }
 
   @override
@@ -151,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                   TextButton(
                     onPressed: busy
                         ? null
-                        : () => Get.to(() => const RegisterPage()),
+                        : () => Get.toNamed(AppRoutes.register),
                     child: const Text('Create an account'),
                   ),
                   if (busy)

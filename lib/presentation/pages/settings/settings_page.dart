@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/routes/app_routes.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../controllers/settings_controller.dart';
-import '../auth/login_page.dart';
-import 'settings_password_page.dart';
-import 'settings_email_page.dart';
 
 class SettingsPage extends GetView<SettingsController> {
   const SettingsPage({super.key});
@@ -24,7 +22,7 @@ class SettingsPage extends GetView<SettingsController> {
 
   Future<void> _signOut() async {
     await controller.signOut();
-    Get.offAll(() => const LoginPage());
+    Get.offAllNamed(AppRoutes.login);
   }
 
   Future<void> _deleteAccount(BuildContext context) async {
@@ -76,7 +74,7 @@ class SettingsPage extends GetView<SettingsController> {
       );
       if (deleted) {
         AppSnackbar.success('Account and its data deleted.');
-        Get.offAll(() => const LoginPage());
+        Get.offAllNamed(AppRoutes.login);
       } else if (controller.error.value != null) {
         AppSnackbar.error(controller.error.value!);
       }
@@ -177,9 +175,8 @@ class SettingsPage extends GetView<SettingsController> {
             child: OutlinedButton.icon(
               onPressed: busy
                   ? null
-                  : () => Get.to(
-                      () => const SettingsEmailPage(createAccount: false),
-                    ),
+                  : () =>
+                        Get.toNamed(AppRoutes.settingsEmail, arguments: false),
               icon: const Icon(Icons.login),
               label: const Text('Sign in an existing account'),
             ),
@@ -190,9 +187,7 @@ class SettingsPage extends GetView<SettingsController> {
             child: FilledButton.icon(
               onPressed: busy
                   ? null
-                  : () => Get.to(
-                      () => const SettingsEmailPage(createAccount: true),
-                    ),
+                  : () => Get.toNamed(AppRoutes.settingsEmail, arguments: true),
               icon: const Icon(Icons.mail_outline),
               label: const Text('Create account with email'),
             ),
@@ -212,26 +207,25 @@ class SettingsPage extends GetView<SettingsController> {
       }
       final securityAction =
           email != null &&
-                  !guest &&
-                  !unverified &&
-                  (controller.canSetPassword || controller.hasPassword)
-              ? SizedBox(
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: () => Get.to(
-                      () => SettingsPasswordPage(
-                        setPassword: controller.canSetPassword,
-                      ),
-                    ),
-                    icon: const Icon(Icons.lock_outline),
-                    label: Text(
-                      controller.canSetPassword
-                          ? 'Set a password'
-                          : 'Change password',
-                    ),
-                  ),
-                )
-              : null;
+              !guest &&
+              !unverified &&
+              (controller.canSetPassword || controller.hasPassword)
+          ? SizedBox(
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: () => Get.toNamed(
+                  AppRoutes.settingsPassword,
+                  arguments: controller.canSetPassword,
+                ),
+                icon: const Icon(Icons.lock_outline),
+                label: Text(
+                  controller.canSetPassword
+                      ? 'Set a password'
+                      : 'Change password',
+                ),
+              ),
+            )
+          : null;
       final signedIn = !guest && email != null;
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -274,7 +268,8 @@ class SettingsPage extends GetView<SettingsController> {
               wide: wide,
               content: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [?securityAction,
+                children: [
+                  ?securityAction,
                   const SizedBox(height: 10),
                   SizedBox(
                     height: 48,

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/routes/app_routes.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../controllers/register_controller.dart';
-import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -73,7 +73,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: () => Get.off(() => const LoginPage()),
+                    onPressed: () => Get.offNamed(AppRoutes.login),
                     child: const Text('Return to sign in'),
                   ),
                 ],
@@ -113,9 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: const Text('Create account'),
                 ),
                 TextButton(
-                  onPressed: busy
-                      ? null
-                      : () => Get.off(() => const LoginPage()),
+                  onPressed: busy ? null : () => Get.offNamed(AppRoutes.login),
                   child: const Text('Already have an account? Sign in'),
                 ),
                 if (busy)

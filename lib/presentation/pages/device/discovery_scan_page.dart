@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:get/get.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
 import '../../controllers/discovery_scan_controller.dart';
-import 'device_add_edit_page.dart';
 
 class DiscoveryScanPage extends StatefulWidget {
   const DiscoveryScanPage({super.key});
@@ -23,14 +23,12 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
   }
 
   Future<void> _openResult(DiscoveryDevice device) async {
-    final result = await Get.to<String>(
-      () => DeviceAddEditPage(discovery: device),
-    );
+    final result = await Get.toNamed(AppRoutes.deviceForm, arguments: device);
     if (result != null && mounted) Navigator.of(context).pop(result);
   }
 
   Future<void> _addManually() async {
-    final result = await Get.to<String>(() => const DeviceAddEditPage());
+    final result = await Get.toNamed(AppRoutes.deviceForm);
     if (result != null && mounted) Navigator.of(context).pop(result);
   }
 

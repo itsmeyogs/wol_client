@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/errors/gateway_failure.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
 import '../../controllers/device_detail_controller.dart';
-import 'device_add_edit_page.dart';
 
 class DeviceDetailPage extends StatefulWidget {
-  const DeviceDetailPage({super.key, required this.deviceId});
+  const DeviceDetailPage({super.key, this.deviceId});
 
-  final int deviceId;
+  final int? deviceId;
 
   @override
   State<DeviceDetailPage> createState() => _DeviceDetailPageState();
@@ -19,14 +19,20 @@ class DeviceDetailPage extends StatefulWidget {
 class _DeviceDetailPageState extends State<DeviceDetailPage> {
   late final DeviceDetailController controller;
 
+  int get _resolvedDeviceId =>
+      widget.deviceId ??
+      (Get.arguments is int
+          ? Get.arguments as int
+          : int.tryParse(Get.parameters['id'] ?? '') ?? 0);
+
   @override
   void initState() {
     super.initState();
     controller = Get.find<DeviceDetailController>();
-    controller.load(widget.deviceId);
+    controller.load(_resolvedDeviceId);
   }
 
-  Future<void> _reload() => controller.load(widget.deviceId);
+  Future<void> _reload() => controller.load(_resolvedDeviceId);
 
   Future<void> _checkStatus() async {
     try {
@@ -75,9 +81,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   Future<void> _edit() async {
     final current = controller.device.value;
     if (current == null) return;
-    final result = await Get.to<String>(
-      () => DeviceAddEditPage(device: current),
-    );
+    final result = await Get.toNamed(AppRoutes.deviceForm, arguments: current);
     if (result == 'updated') {
       await _reload();
       if (controller.error.value == null) {

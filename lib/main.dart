@@ -4,13 +4,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'core/database/database_factory.dart';
 import 'core/logging/app_logger.dart';
+import 'core/routes/app_pages.dart';
+import 'core/routes/app_routes.dart';
+import 'core/routes/url_strategy.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'presentation/bindings/app_binding.dart';
-import 'presentation/pages/auth/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  configureUrlStrategy();
   FlutterError.onError = (details) {
     AppLogger.instance.error(
       'Unhandled Flutter error: ${details.exception.runtimeType}',
@@ -51,7 +54,8 @@ class MyApp extends StatelessWidget {
     title: 'WoL Client',
     theme: AppTheme.light,
     initialBinding: AppBinding(),
-    home: const AuthGate(),
+    initialRoute: AppRoutes.root,
+    getPages: AppPages.pages,
     debugShowCheckedModeBanner: false,
   );
 }

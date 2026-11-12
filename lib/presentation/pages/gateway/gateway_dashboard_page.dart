@@ -3,13 +3,11 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:get/get.dart';
 import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
+import '../../../core/routes/app_routes.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
 import '../../controllers/gateway_dashboard_controller.dart';
 import '../../controllers/gateway_session_controller.dart';
-import '../device/device_detail_page.dart';
-import '../device/discovery_scan_page.dart';
-import '../diagnostics/diagnostics_page.dart';
 import '../../../core/logging/app_logger.dart';
 
 class GatewayDashboardPage extends StatefulWidget {
@@ -28,7 +26,7 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
   }
 
   Future<void> _add() async {
-    final result = await Get.to<String>(() => const DiscoveryScanPage());
+    final result = await Get.toNamed(AppRoutes.discovery);
     if (result != null && mounted) {
       await controller.load();
       if (controller.error.value == null) {
@@ -78,8 +76,9 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
   }
 
   Future<void> _open(Device device) async {
-    final result = await Get.to<String>(
-      () => DeviceDetailPage(deviceId: device.id!),
+    final result = await Get.toNamed(
+      AppRoutes.deviceDetail,
+      arguments: device.id,
     );
     if (result == 'deleted' && mounted) {
       await controller.load();
@@ -100,7 +99,7 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
         title: Text(gateway?.name ?? 'Gateway'),
         actions: [
           IconButton(
-            onPressed: () => Get.to(() => const DiagnosticsPage()),
+            onPressed: () => Get.toNamed(AppRoutes.diagnostics),
             tooltip: 'Gateway diagnostics',
             icon: const Icon(Icons.monitor_heart_outlined),
           ),
@@ -205,8 +204,9 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
                     ),
                   );
                 }
-                if (rowDevices.length < columns)
+                if (rowDevices.length < columns) {
                   children.add(const Expanded(child: SizedBox()));
+                }
                 rows.add(
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
