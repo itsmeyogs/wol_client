@@ -6,99 +6,10 @@ import '../../../core/ui/app_snackbar.dart';
 import '../../controllers/auth_controller.dart';
 import '../auth/login_page.dart';
 import 'settings_password_page.dart';
+import 'settings_email_page.dart';
 
 class SettingsPage extends GetView<AuthController> {
   const SettingsPage({super.key});
-
-  Future<void> _signUp(BuildContext context) async {
-    final email = TextEditingController();
-    final password = TextEditingController();
-    final confirmation = TextEditingController();
-    final key = GlobalKey<FormState>();
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create account'),
-        content: Form(
-          key: key,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.email],
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (value) =>
-                      value == null ||
-                          !RegExp(
-                            r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
-                          ).hasMatch(value.trim())
-                      ? 'Enter a valid email address.'
-                      : null,
-                ),
-                TextFormField(
-                  controller: password,
-                  obscureText: true,
-                  autofillHints: const [AutofillHints.newPassword],
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  validator: (value) => value == null || value.length < 6
-                      ? 'Use at least 6 characters.'
-                      : null,
-                ),
-                TextFormField(
-                  controller: confirmation,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm password',
-                  ),
-                  validator: (value) =>
-                      value != password.text ? 'Passwords do not match.' : null,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (key.currentState!.validate()) Navigator.pop(context, true);
-            },
-            child: const Text('Create account'),
-          ),
-        ],
-      ),
-    );
-    if (accepted == true) {
-      final created = await controller.registerEmailFromSettings(
-        email.text,
-        password.text,
-      );
-      if (created) {
-        AppSnackbar.success(
-          'Verification email sent. Your account is signed in.',
-        );
-      } else if (controller.error.value != null) {
-        AppSnackbar.error(controller.error.value!);
-      }
-    }
-    email.dispose();
-    password.dispose();
-    confirmation.dispose();
-  }
-
-  Future<void> _googleSignIn() async {
-    if (await controller.signInGoogle()) {
-      AppSnackbar.success('Google sign-in complete.');
-    } else if (controller.error.value != null) {
-      AppSnackbar.error(controller.error.value!);
-    }
-  }
 
   Future<void> _verificationAction() async {
     final user = controller.currentUser;
@@ -276,9 +187,13 @@ class SettingsPage extends GetView<AuthController> {
           SizedBox(
             height: 48,
             child: OutlinedButton.icon(
-              onPressed: controller.isBusy.value ? null : _googleSignIn,
-              icon: const Icon(Icons.account_circle_outlined),
-              label: const Text('Continue with Google'),
+              onPressed: controller.isBusy.value
+                  ? null
+                  : () => Get.to(
+                      () => const SettingsEmailPage(createAccount: false),
+                    ),
+              icon: const Icon(Icons.login),
+              label: const Text('Sign in an existing account'),
             ),
           ),
           const SizedBox(height: 10),
@@ -287,16 +202,11 @@ class SettingsPage extends GetView<AuthController> {
             child: FilledButton.icon(
               onPressed: controller.isBusy.value
                   ? null
-                  : () => _signUp(context),
+                  : () => Get.to(
+                      () => const SettingsEmailPage(createAccount: true),
+                    ),
               icon: const Icon(Icons.mail_outline),
               label: const Text('Create account with email'),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: () => Get.to(() => const LoginPage()),
-              child: const Text('Sign in to an existing account'),
             ),
           ),
         ]);

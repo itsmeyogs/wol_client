@@ -48,19 +48,6 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
         title: const Text('Wake device?'),
         content: Text('Send a magic packet to ${device.name}?'),
         actions: [
-          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
-            Obx(
-              () => IconButton(
-                tooltip: 'Refresh devices',
-                onPressed: controller.isLoading.value ? null : controller.load,
-                icon: controller.isLoading.value
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
-              ),
-            ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
@@ -112,14 +99,6 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
       appBar: AppBar(
         title: Text(gateway?.name ?? 'Gateway'),
         actions: [
-          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
-            Obx(
-              () => IconButton(
-                tooltip: 'Refresh devices',
-                onPressed: controller.isLoading.value ? null : controller.load,
-                icon: const Icon(Icons.refresh),
-              ),
-            ),
           IconButton(
             onPressed: () => Get.to(() => const DiagnosticsPage()),
             tooltip: 'Gateway diagnostics',
@@ -137,33 +116,33 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
           return const Center(child: CircularProgressIndicator());
         }
         if (controller.error.value != null && controller.devices.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: controller.load,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                SizedBox(
-                  height: MediaQuery.sizeOf(context).height * .7,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          controller.error.value!,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        FilledButton(
-                          onPressed: controller.load,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
+          final errorList = ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: MediaQuery.sizeOf(context).height * .7,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        controller.error.value!,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: controller.load,
+                        child: const Text('Retry'),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
+          return defaultTargetPlatform == TargetPlatform.android && !kIsWeb
+              ? RefreshIndicator(onRefresh: controller.load, child: errorList)
+              : errorList;
         }
         if (controller.devices.isEmpty) {
           return Center(
@@ -248,10 +227,10 @@ class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
             },
           ),
         );
-        return RefreshIndicator(
-          onRefresh: controller.load,
-          child: Center(child: content),
-        );
+        final list = Center(child: content);
+        return defaultTargetPlatform == TargetPlatform.android && !kIsWeb
+            ? RefreshIndicator(onRefresh: controller.load, child: list)
+            : list;
       }),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../core/auth/auth_mode.dart';
 import '../../core/errors/gateway_failure.dart';
 import '../../core/network/gateway_url.dart';
 import '../../data/models/gateway.dart';
@@ -6,6 +7,7 @@ import '../../domain/usecases/gateway_usecases.dart';
 import '../../domain/usecases/gateway_sync_usecase.dart';
 import '../../core/logging/app_logger.dart';
 import '../../core/ui/app_snackbar.dart';
+import 'auth_controller.dart';
 
 class GatewayController extends GetxController {
   GatewayController(
@@ -99,6 +101,10 @@ class GatewayController extends GetxController {
   }
 
   Future<void> _syncLocalChange() async {
+    if (!Get.isRegistered<AuthController>() ||
+        Get.find<AuthController>().mode.value != AuthMode.authenticated) {
+      return;
+    }
     try {
       await _syncGateways?.call();
     } catch (exception, stackTrace) {

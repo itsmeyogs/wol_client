@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/ui/app_snackbar.dart';
+import '../../../core/auth/auth_mode.dart';
 import '../../controllers/auth_controller.dart';
 import '../gateway/gateway_list_page.dart';
 import 'register_page.dart';
+import 'email_verification_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,6 +25,8 @@ class _LoginPageState extends State<LoginPage> {
     if (await controller.signInEmail(email.text, password.text)) {
       AppSnackbar.success('Signed in successfully.');
       Get.offAll(() => const GatewayListPage());
+    } else if (controller.mode.value == AuthMode.verification) {
+      Get.to(() => const EmailVerificationPage());
     } else if (controller.error.value != null) {
       AppSnackbar.error(controller.error.value!);
     }

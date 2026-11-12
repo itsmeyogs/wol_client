@@ -10,7 +10,6 @@ import '../../../data/models/gateway.dart';
 import '../../controllers/gateway_controller.dart';
 import '../../controllers/gateway_session_controller.dart';
 import '../../controllers/auth_controller.dart';
-import '../../controllers/gateway_sync_controller.dart';
 import '../settings/settings_page.dart';
 import 'gateway_dashboard_page.dart';
 import 'gateway_form_page.dart';
@@ -30,25 +29,6 @@ class GatewayListPage extends GetView<GatewayController> {
         title: const Text('Delete gateway?'),
         content: Text('Remove ${gateway.name} from this device?'),
         actions: [
-          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
-            Obx(() {
-              final syncing = Get.find<GatewaySyncController>().isSyncing.value;
-              return IconButton(
-                tooltip: 'Refresh gateways',
-                onPressed: controller.isLoading.value || syncing
-                    ? null
-                    : controller.load,
-                icon: const Icon(Icons.refresh),
-              );
-            }),
-          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
-            Obx(
-              () => IconButton(
-                tooltip: 'Refresh gateways',
-                onPressed: controller.isLoading.value ? null : controller.load,
-                icon: const Icon(Icons.refresh),
-              ),
-            ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
@@ -83,12 +63,6 @@ class GatewayListPage extends GetView<GatewayController> {
     );
     if (result == 'added') AppSnackbar.success('Gateway added.');
     if (result == 'updated') AppSnackbar.success('Gateway updated.');
-  }
-
-  Future<void> _sync() async {
-    final sync = Get.find<GatewaySyncController>();
-    await sync.sync();
-    if (sync.error.value == null) AppSnackbar.success('Gateways refreshed.');
   }
 
   Future<void> _showActions(BuildContext context, Gateway gateway) async {
@@ -151,29 +125,6 @@ class GatewayListPage extends GetView<GatewayController> {
                     : const Icon(Icons.refresh),
               ),
             ),
-          Obx(() {
-            final auth = Get.find<AuthController>();
-            if (auth.mode.value != AuthMode.authenticated) {
-              return const SizedBox.shrink();
-            }
-            final sync = Get.find<GatewaySyncController>();
-            return Row(
-              children: [
-                Obx(
-                  () => IconButton(
-                    tooltip: 'Refresh gateways',
-                    onPressed: sync.isSyncing.value ? null : _sync,
-                    icon: sync.isSyncing.value
-                        ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.sync),
-                  ),
-                ),
-              ],
-            );
-          }),
           IconButton(
             tooltip: 'Settings',
             onPressed: () => Get.to(() => const SettingsPage()),
@@ -258,10 +209,10 @@ class GatewayListPage extends GetView<GatewayController> {
             },
           ),
         );
-        return RefreshIndicator(
-          onRefresh: controller.load,
-          child: Center(child: content),
-        );
+        final list = Center(child: content);
+        return defaultTargetPlatform == TargetPlatform.android && !kIsWeb
+            ? RefreshIndicator(onRefresh: controller.load, child: list)
+            : list;
       }),
     );
   }

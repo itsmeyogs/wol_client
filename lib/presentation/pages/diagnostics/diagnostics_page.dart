@@ -51,7 +51,24 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
         }
         final message = controller.error.value;
         if (message != null && controller.diagnostics.value == null) {
-          return _RefreshErrorState(message: message, onRetry: controller.load);
+          final errorState = _DiagnosticsErrorMessage(
+            message: message,
+            onRetry: controller.load,
+          );
+          return _isAndroid
+              ? RefreshIndicator(
+                  onRefresh: controller.load,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * .65,
+                        child: errorState,
+                      ),
+                    ],
+                  ),
+                )
+              : errorState;
         }
         final snapshot = controller.diagnostics.value;
         if (snapshot == null || snapshot.isEmpty) {
@@ -82,10 +99,35 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
             ),
           ),
         );
-        return RefreshIndicator(onRefresh: controller.load, child: content);
+        return _isAndroid
+            ? RefreshIndicator(onRefresh: controller.load, child: content)
+            : content;
       }),
     );
   }
+}
+
+bool get _isAndroid =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+class _DiagnosticsErrorMessage extends StatelessWidget {
+  const _DiagnosticsErrorMessage({
+    required this.message,
+    required this.onRetry,
+  });
+  final String message;
+  final Future<void> Function() onRetry;
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 16),
+        FilledButton(onPressed: onRetry, child: const Text('Retry')),
+      ],
+    ),
+  );
 }
 
 class _GeneralSection extends StatelessWidget {
@@ -292,48 +334,6 @@ class _EmptyState extends StatelessWidget {
           FilledButton(onPressed: onRetry, child: const Text('Refresh')),
         ],
       ),
-    ),
-  );
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          FilledButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
-      ),
-    ),
-  );
-}
-
-class _RefreshErrorState extends StatelessWidget {
-  const _RefreshErrorState({required this.message, required this.onRetry});
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) => RefreshIndicator(
-    onRefresh: onRetry,
-    child: ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        SizedBox(
-          height: MediaQuery.sizeOf(context).height * .7,
-          child: _ErrorState(message: message, onRetry: onRetry),
-        ),
-      ],
     ),
   );
 }

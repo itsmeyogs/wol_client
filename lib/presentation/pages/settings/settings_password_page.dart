@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/ui/app_snackbar.dart';
 import '../../controllers/auth_controller.dart';
+import 'settings_page.dart';
 
 class SettingsPasswordPage extends StatefulWidget {
   const SettingsPasswordPage({super.key, required this.setPassword});
@@ -36,7 +37,7 @@ class _SettingsPasswordPageState extends State<SettingsPasswordPage> {
       AppSnackbar.success(
         widget.setPassword ? 'Password set.' : 'Password changed.',
       );
-      Get.back();
+      Get.off(() => const SettingsPage());
     } else if (auth.error.value != null) {
       AppSnackbar.error(auth.error.value!);
     }

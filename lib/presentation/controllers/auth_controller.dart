@@ -155,7 +155,8 @@ class AuthController extends GetxController {
               Future<UserCredential>.error('Firebase is unavailable.'));
       await result.user?.sendEmailVerification();
       await (await _prefs).remove(_guestKey);
-      mode.value = AuthMode.verification;
+      mode.value = AuthMode.authenticated;
+      _syncGateways();
     });
   }
 
@@ -281,7 +282,10 @@ class AuthController extends GetxController {
       final hasPassword = user.providerData.any(
         (provider) => provider.providerId == 'password',
       );
-      if (hasPassword) {
+      final hasGoogle = user.providerData.any(
+        (provider) => provider.providerId == 'google.com',
+      );
+      if (hasPassword && !hasGoogle) {
         final email = user.email;
         if (email == null || password == null || password.isEmpty) {
           throw StateError('Enter your current password to continue.');
@@ -289,13 +293,7 @@ class AuthController extends GetxController {
         await user.reauthenticateWithCredential(
           EmailAuthProvider.credential(email: email, password: password),
         );
-      } else {
-        final provider = user.providerData
-            .map((item) => item.providerId)
-            .firstWhere((id) => id != 'firebase', orElse: () => '');
-        if (provider != 'google.com') {
-          throw StateError('Reauthenticate with your sign-in provider first.');
-        }
+      } else if (hasGoogle) {
         final credential =
             !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
             ? await getGoogleCredentialWindows()
@@ -306,6 +304,8 @@ class AuthController extends GetxController {
           throw StateError('Google reauthentication was cancelled.');
         }
         await user.reauthenticateWithCredential(credential);
+      } else {
+        throw StateError('Reauthenticate with your sign-in provider first.');
       }
 
       if (!Get.isRegistered<GatewayCloudDataSource>()) {

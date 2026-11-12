@@ -69,8 +69,7 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
         return const Center(child: CircularProgressIndicator());
       }
       if (controller.discoveryError.value != null) {
-        return _RefreshMessageState(
-          onRefresh: _refresh,
+        final errorState = _MessageState(
           message: controller.discoveryError.value!,
           action: _isDesktop
               ? OutlinedButton.icon(
@@ -80,10 +79,23 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
                 )
               : const SizedBox.shrink(),
         );
+        return _isAndroid
+            ? RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.sizeOf(context).height * .65,
+                      child: errorState,
+                    ),
+                  ],
+                ),
+              )
+            : errorState;
       }
       if (controller.discovered.isEmpty) {
-        return _RefreshMessageState(
-          onRefresh: _refresh,
+        final emptyState = _MessageState(
           message: 'No devices found on the LAN.',
           action: _isDesktop
               ? OutlinedButton.icon(
@@ -93,6 +105,20 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
                 )
               : const SizedBox.shrink(),
         );
+        return _isAndroid
+            ? RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.sizeOf(context).height * .65,
+                      child: emptyState,
+                    ),
+                  ],
+                ),
+              )
+            : emptyState;
       }
       final content = Center(
         child: ConstrainedBox(
@@ -124,7 +150,9 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
           ),
         ),
       );
-      return RefreshIndicator(onRefresh: _refresh, child: content);
+      return _isAndroid
+          ? RefreshIndicator(onRefresh: _refresh, child: content)
+          : content;
     }),
     bottomNavigationBar: SafeArea(
       minimum: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -139,6 +167,8 @@ class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
 
 bool get _isDesktop =>
     kIsWeb || defaultTargetPlatform == TargetPlatform.windows;
+bool get _isAndroid =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
 class _MessageState extends StatelessWidget {
   const _MessageState({required this.message, required this.action});
@@ -158,32 +188,6 @@ class _MessageState extends StatelessWidget {
           action,
         ],
       ),
-    ),
-  );
-}
-
-class _RefreshMessageState extends StatelessWidget {
-  const _RefreshMessageState({
-    required this.onRefresh,
-    required this.message,
-    required this.action,
-  });
-
-  final Future<void> Function() onRefresh;
-  final String message;
-  final Widget action;
-
-  @override
-  Widget build(BuildContext context) => RefreshIndicator(
-    onRefresh: onRefresh,
-    child: ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        SizedBox(
-          height: MediaQuery.sizeOf(context).height * .65,
-          child: _MessageState(message: message, action: action),
-        ),
-      ],
     ),
   );
 }
