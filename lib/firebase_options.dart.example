@@ -21,6 +21,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'your-messaging-sender-id',
     projectId: 'your-firebase-project',
     authDomain: 'your-firebase-project.firebaseapp.com',
+    storageBucket: 'your-firebase-project.firebasestorage.app',
+    measurementId: 'your-web-measurement-id',
   );
 
   static const android = FirebaseOptions(
@@ -28,6 +30,7 @@ class DefaultFirebaseOptions {
     appId: 'your-android-app-id',
     messagingSenderId: 'your-messaging-sender-id',
     projectId: 'your-firebase-project',
+    storageBucket: 'your-firebase-project.firebasestorage.app',
   );
 
   static const windows = FirebaseOptions(
@@ -36,5 +39,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'your-messaging-sender-id',
     projectId: 'your-firebase-project',
     authDomain: 'your-firebase-project.firebaseapp.com',
+    storageBucket: 'your-firebase-project.firebasestorage.app',
+    measurementId: 'your-windows-measurement-id',
   );
 }

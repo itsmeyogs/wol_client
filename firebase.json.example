@@ -1,1 +1,44 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"your-firebase-project","appId":"your-android-app-id","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"your-firebase-project","configurations":{"android":"your-android-app-id","web":"your-web-app-id","windows":"your-windows-app-id"}}}}}}
+{
+  "firestore": {"rules": "firestore.rules"},
+  "emulators": {"firestore": {"port": 8080}},
+  "hosting": {
+    "public": "build/web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {"key": "Cross-Origin-Opener-Policy", "value": "same-origin"},
+          {"key": "Cross-Origin-Embedder-Policy", "value": "credentialless"}
+        ]
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "your-firebase-project",
+          "appId": "your-android-app-id",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "your-firebase-project",
+          "configurations": {
+            "android": "your-android-app-id",
+            "web": "your-web-app-id",
+            "windows": "your-windows-app-id"
+          }
+        }
+      }
+    }
+  }
+}
