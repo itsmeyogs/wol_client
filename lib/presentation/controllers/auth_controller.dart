@@ -9,6 +9,7 @@ import '../../core/auth/google_windows_sign_in.dart';
 import 'gateway_sync_controller.dart';
 import '../../core/ui/app_snackbar.dart';
 import 'gateway_controller.dart';
+import '../../data/datasources/gateway_cloud_data_source.dart';
 
 class AuthController extends GetxController {
   AuthController({FirebaseAuth? auth, SharedPreferences? preferences})
@@ -142,6 +143,22 @@ class AuthController extends GetxController {
     });
   }
 
+  // Settings registration intentionally keeps the newly-created session active.
+  // LoginPage registration retains its existing verify-then-sign-in flow.
+  Future<bool> registerEmailFromSettings(String email, String password) async {
+    return _run('settings account registration', () async {
+      final result =
+          await (_auth?.createUserWithEmailAndPassword(
+                email: email.trim(),
+                password: password,
+              ) ??
+              Future<UserCredential>.error('Firebase is unavailable.'));
+      await result.user?.sendEmailVerification();
+      await (await _prefs).remove(_guestKey);
+      mode.value = AuthMode.verification;
+    });
+  }
+
   Future<bool> resendVerificationEmail() async {
     final user = _auth?.currentUser;
     if (user == null) return false;
@@ -234,6 +251,74 @@ class AuthController extends GetxController {
       await user.linkWithCredential(
         EmailAuthProvider.credential(email: user.email!, password: password),
       );
+    });
+  }
+
+  Future<bool> changeEmailPassword(
+    String password,
+    String currentPassword,
+  ) async {
+    return _run('password change', () async {
+      final user = _auth?.currentUser;
+      final email = user?.email;
+      if (user == null || email == null) {
+        throw StateError('Sign in with email and password first.');
+      }
+      await user.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: email, password: currentPassword),
+      );
+      await user.updatePassword(password);
+    });
+  }
+
+  Future<bool> deleteAccount({String? password}) async {
+    return _run('account deletion', () async {
+      final auth = _auth;
+      final user = auth?.currentUser;
+      if (auth == null || user == null) {
+        throw StateError('Sign in before deleting your account.');
+      }
+      final hasPassword = user.providerData.any(
+        (provider) => provider.providerId == 'password',
+      );
+      if (hasPassword) {
+        final email = user.email;
+        if (email == null || password == null || password.isEmpty) {
+          throw StateError('Enter your current password to continue.');
+        }
+        await user.reauthenticateWithCredential(
+          EmailAuthProvider.credential(email: email, password: password),
+        );
+      } else {
+        final provider = user.providerData
+            .map((item) => item.providerId)
+            .firstWhere((id) => id != 'firebase', orElse: () => '');
+        if (provider != 'google.com') {
+          throw StateError('Reauthenticate with your sign-in provider first.');
+        }
+        final credential =
+            !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
+            ? await getGoogleCredentialWindows()
+            : kIsWeb
+            ? (await auth.signInWithPopup(GoogleAuthProvider())).credential
+            : (await auth.signInWithProvider(GoogleAuthProvider())).credential;
+        if (credential == null) {
+          throw StateError('Google reauthentication was cancelled.');
+        }
+        await user.reauthenticateWithCredential(credential);
+      }
+
+      if (!Get.isRegistered<GatewayCloudDataSource>()) {
+        throw StateError('Account data service is unavailable.');
+      }
+      await Get.find<GatewayCloudDataSource>().deleteAccountData();
+      if (Get.isRegistered<GatewayController>()) {
+        await Get.find<GatewayController>().clearLocalState();
+      }
+      await user.delete();
+      await (await _prefs).remove(_guestKey);
+      error.value = null;
+      mode.value = AuthMode.login;
     });
   }
 

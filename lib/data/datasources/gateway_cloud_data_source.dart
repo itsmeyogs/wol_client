@@ -47,6 +47,20 @@ class GatewayCloudDataSource {
 
   Future<void> delete(String syncId) => _gateways.doc(syncId).delete();
 
+  Future<void> deleteAccountData() async {
+    for (final collection in [_gateways, _deletes]) {
+      while (true) {
+        final snapshot = await collection.limit(400).get();
+        if (snapshot.docs.isEmpty) break;
+        final batch = _firestore.batch();
+        for (final document in snapshot.docs) {
+          batch.delete(document.reference);
+        }
+        await batch.commit();
+      }
+    }
+  }
+
   Future<List<String>> getDeletedIds() async =>
       (await _deletes.get()).docs.map((document) => document.id).toList();
 

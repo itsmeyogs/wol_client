@@ -10,7 +10,7 @@ import '../../controllers/gateway_controller.dart';
 import '../../controllers/gateway_session_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/gateway_sync_controller.dart';
-import '../auth/login_page.dart';
+import '../settings/settings_page.dart';
 import 'gateway_dashboard_page.dart';
 import 'gateway_form_page.dart';
 import '../../../core/logging/app_logger.dart';
@@ -63,70 +63,6 @@ class GatewayListPage extends GetView<GatewayController> {
     );
     if (result == 'added') AppSnackbar.success('Gateway added.');
     if (result == 'updated') AppSnackbar.success('Gateway updated.');
-  }
-
-  Future<void> _signOut() async {
-    await Get.find<AuthController>().signOut();
-    Get.offAll(() => const LoginPage());
-  }
-
-  Future<void> _linkProvider(BuildContext context) async {
-    final auth = Get.find<AuthController>();
-    if (!auth.canSetPassword) return;
-    final linked = await _setPasswordDialog(context, auth);
-    if (linked == true) AppSnackbar.success('Sign-in method linked.');
-    if (linked == false && auth.error.value != null) {
-      AppSnackbar.error(auth.error.value!);
-    }
-  }
-
-  Future<bool?> _setPasswordDialog(
-    BuildContext context,
-    AuthController auth,
-  ) async {
-    final password = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Set an email password'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('A password will be added to ${auth.currentUser?.email}.'),
-              TextFormField(
-                controller: password,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password'),
-                validator: (v) => v == null || v.length < 6
-                    ? 'Password must contain at least 6 characters.'
-                    : null,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(
-                context,
-                await auth.linkEmailPassword(password.text),
-              );
-            },
-            child: const Text('Set password'),
-          ),
-        ],
-      ),
-    );
-    password.dispose();
-    return result;
   }
 
   Future<void> _sync() async {
@@ -202,22 +138,14 @@ class GatewayListPage extends GetView<GatewayController> {
                         : const Icon(Icons.sync),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Sign out',
-                  onPressed: _signOut,
-                  icon: const Icon(Icons.logout),
-                ),
-                if (auth.canSetPassword)
-                  IconButton(
-                    tooltip: 'Set email password',
-                    onPressed: auth.isBusy.value
-                        ? null
-                        : () => _linkProvider(context),
-                    icon: const Icon(Icons.password),
-                  ),
               ],
             );
           }),
+          IconButton(
+            tooltip: 'Settings',
+            onPressed: () => Get.to(() => const SettingsPage()),
+            icon: const Icon(Icons.settings_outlined),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
