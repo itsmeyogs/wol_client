@@ -4,8 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/errors/gateway_failure.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
-import '../../controllers/device_controller.dart';
-import '../../../core/logging/app_logger.dart';
+import '../../controllers/device_add_edit_controller.dart';
 
 class DeviceAddEditPage extends StatefulWidget {
   const DeviceAddEditPage({super.key, this.device, this.discovery});
@@ -23,6 +22,7 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
   late final TextEditingController _wolPort;
   late final TextEditingController _statusPort;
   late String _method;
+  late final DeviceAddEditController controller;
 
   @override
   void initState() {
@@ -46,11 +46,12 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
       text: '${device?.statusCheckPort ?? 3389}',
     );
     _method = device?.statusCheckMethod ?? 'ICMP_AND_TCP';
+    controller = Get.find<DeviceAddEditController>();
   }
 
   @override
   void dispose() {
-    for (final controller in [
+    for (final textController in [
       _name,
       _ip,
       _mac,
@@ -58,16 +59,15 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
       _wolPort,
       _statusPort,
     ]) {
-      controller.dispose();
+      textController.dispose();
     }
     super.dispose();
   }
 
   Future<void> _save() async {
-    final controller = Get.find<DeviceController>();
     final edit = widget.device != null;
     try {
-      await controller.saveDevice(
+      final saved = await controller.save(
         id: widget.device?.id,
         name: _name.text,
         ipAddress: _ip.text,
@@ -77,23 +77,22 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
         statusCheckMethod: _method,
         statusCheckPort: _statusPort.text,
       );
-      if (mounted) Get.back(result: edit ? 'updated' : 'added');
+      if (!mounted) return;
+      if (!saved) {
+        AppSnackbar.error(
+          controller.error.value ?? 'Device could not be saved.',
+        );
+        return;
+      }
+      Navigator.of(context).pop(edit ? 'updated' : 'added');
     } on GatewayFailure catch (failure) {
-      AppSnackbar.error(failure.message);
-    } catch (exception, stackTrace) {
-      AppLogger.instance.error(
-        'Device save failed: ${exception.runtimeType}',
-        exception,
-        stackTrace,
-      );
-      AppSnackbar.error('Device could not be saved.');
+      if (mounted) AppSnackbar.error(failure.message);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final edit = widget.device != null;
-    final controller = Get.find<DeviceController>();
     return Scaffold(
       appBar: AppBar(title: Text(edit ? 'Edit device' : 'Add device')),
       body: Center(
@@ -152,7 +151,7 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
 
   Widget _field(
     String label,
-    TextEditingController controller,
+    TextEditingController textController,
     String hint, {
     bool numeric = false,
     bool decimal = false,
@@ -164,7 +163,7 @@ class _DeviceAddEditPageState extends State<DeviceAddEditPage> {
         Text(label, style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 8),
         TextField(
-          controller: controller,
+          controller: textController,
           keyboardType: numeric || decimal
               ? TextInputType.numberWithOptions(decimal: decimal)
               : TextInputType.text,

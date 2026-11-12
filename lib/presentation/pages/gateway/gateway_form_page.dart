@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/errors/gateway_failure.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/gateway.dart';
-import '../../controllers/gateway_controller.dart';
-import '../../../core/logging/app_logger.dart';
+import '../../controllers/gateway_form_controller.dart';
 
 class GatewayFormPage extends StatefulWidget {
   const GatewayFormPage({super.key, this.gateway});
@@ -18,7 +16,7 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
   late final TextEditingController _baseUrl;
   late final TextEditingController _token;
   late String _scheme;
-  bool _saving = false;
+  late final GatewayFormController controller;
 
   @override
   void initState() {
@@ -28,6 +26,7 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
     _baseUrl = TextEditingController(text: gateway?.baseUrl);
     _token = TextEditingController(text: gateway?.apiToken);
     _scheme = gateway?.scheme ?? 'https';
+    controller = Get.put(GatewayFormController(gateway));
   }
 
   @override
@@ -35,39 +34,24 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
     _name.dispose();
     _baseUrl.dispose();
     _token.dispose();
+    Get.delete<GatewayFormController>();
     super.dispose();
   }
 
   Future<void> _save() async {
-    if (_saving) return;
-    setState(() => _saving = true);
-    try {
-      await Get.find<GatewayController>().saveGateway(
-        id: widget.gateway?.id,
-        name: _name.text,
-        scheme: _scheme,
-        baseUrl: _baseUrl.text,
-        apiToken: _token.text,
-        createdAt: widget.gateway?.createdAt,
-      );
-      if (mounted) {
-        Navigator.of(context).pop(widget.gateway == null ? 'added' : 'updated');
-      }
-    } on GatewayFailure catch (failure) {
-      if (mounted) _showError(failure.message);
-    } catch (exception, stackTrace) {
-      AppLogger.instance.error(
-        'Gateway save failed: ${exception.runtimeType}',
-        exception,
-        stackTrace,
-      );
-      if (mounted) _showError('Gateway could not be saved.');
-    } finally {
-      if (mounted) setState(() => _saving = false);
+    final saved = await controller.save(
+      name: _name.text,
+      scheme: _scheme,
+      baseUrl: _baseUrl.text,
+      apiToken: _token.text,
+    );
+    if (!mounted) return;
+    if (!saved) {
+      AppSnackbar.error(controller.error.value ?? 'Gateway could not be saved.');
+      return;
     }
+    Navigator.of(context).pop(controller.isEdit ? 'updated' : 'added');
   }
-
-  void _showError(String message) => AppSnackbar.error(message);
 
   @override
   Widget build(BuildContext context) {
@@ -134,15 +118,21 @@ class _GatewayFormPageState extends State<GatewayFormPage> {
                 textInputAction: TextInputAction.done,
               ),
               const SizedBox(height: 28),
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check),
-                label: Text(_saving ? 'Checking gateway...' : 'Save gateway'),
+              Obx(
+                () => FilledButton.icon(
+                  onPressed: controller.isSaving.value ? null : _save,
+                  icon: controller.isSaving.value
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check),
+                  label: Text(
+                    controller.isSaving.value
+                        ? 'Checking gateway...'
+                        : 'Save gateway',
+                  ),
+                ),
               ),
             ],
           ),

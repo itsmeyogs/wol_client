@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../core/ui/app_snackbar.dart';
 import '../../../core/auth/auth_mode.dart';
-import '../../controllers/auth_controller.dart';
+import '../../../core/ui/app_snackbar.dart';
+import '../../controllers/auth_session_controller.dart';
+import '../../controllers/login_controller.dart';
 import '../gateway/gateway_list_page.dart';
 import 'register_page.dart';
 import 'email_verification_page.dart';
@@ -19,13 +20,14 @@ class _LoginPageState extends State<LoginPage> {
   final email = TextEditingController();
   final password = TextEditingController();
 
-  AuthController get controller => Get.find<AuthController>();
+  LoginController get controller => Get.find<LoginController>();
+  AuthSessionController get session => Get.find<AuthSessionController>();
 
   Future<void> _signInEmail() async {
     if (await controller.signInEmail(email.text, password.text)) {
       AppSnackbar.success('Signed in successfully.');
       Get.offAll(() => const GatewayListPage());
-    } else if (controller.mode.value == AuthMode.verification) {
+    } else if (session.mode.value == AuthMode.verification) {
       Get.to(() => const EmailVerificationPage());
     } else if (controller.error.value != null) {
       AppSnackbar.error(controller.error.value!);

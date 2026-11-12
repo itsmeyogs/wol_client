@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/ui/app_snackbar.dart';
-import '../../controllers/auth_controller.dart';
-import 'settings_page.dart';
+import '../../controllers/settings_password_controller.dart';
 
 class SettingsPasswordPage extends StatefulWidget {
   const SettingsPasswordPage({super.key, required this.setPassword});
@@ -18,7 +17,8 @@ class _SettingsPasswordPageState extends State<SettingsPasswordPage> {
   final _password = TextEditingController();
   final _confirmation = TextEditingController();
   final _currentPassword = TextEditingController();
-  AuthController get auth => Get.find<AuthController>();
+  SettingsPasswordController get auth =>
+      Get.find<SettingsPasswordController>();
 
   @override
   void dispose() {
@@ -30,14 +30,17 @@ class _SettingsPasswordPageState extends State<SettingsPasswordPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final success = widget.setPassword
-        ? await auth.linkEmailPassword(_password.text)
-        : await auth.changeEmailPassword(_password.text, _currentPassword.text);
+    final success = await auth.submit(
+      setPassword: widget.setPassword,
+      password: _password.text,
+      currentPassword: _currentPassword.text,
+    );
+    if (!mounted) return;
     if (success) {
+      Navigator.of(context).pop();
       AppSnackbar.success(
         widget.setPassword ? 'Password set.' : 'Password changed.',
       );
-      Get.off(() => const SettingsPage());
     } else if (auth.error.value != null) {
       AppSnackbar.error(auth.error.value!);
     }

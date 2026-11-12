@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/ui/app_snackbar.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/email_verification_controller.dart';
 import '../gateway/gateway_list_page.dart';
 import 'login_page.dart';
 
-class EmailVerificationPage extends GetView<AuthController> {
+class EmailVerificationPage extends GetView<EmailVerificationController> {
   const EmailVerificationPage({super.key});
 
   @override
@@ -25,7 +25,7 @@ class EmailVerificationPage extends GetView<AuthController> {
                 const Icon(Icons.mark_email_unread_outlined, size: 56),
                 const SizedBox(height: 16),
                 Text(
-                  'Verify ${controller.currentUser?.email ?? 'your email'}',
+                  'Verify ${controller.email ?? 'your email'}',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -42,7 +42,7 @@ class EmailVerificationPage extends GetView<AuthController> {
                   onPressed: controller.isBusy.value
                       ? null
                       : () async {
-                          if (await controller.checkEmailVerification()) {
+                          if (await controller.check()) {
                             Get.offAll(() => const GatewayListPage());
                           } else if (controller.error.value != null) {
                             AppSnackbar.error(controller.error.value!);
@@ -54,12 +54,11 @@ class EmailVerificationPage extends GetView<AuthController> {
                   onPressed: controller.isBusy.value
                       ? null
                       : () async {
-                          final sent = await controller
-                              .resendVerificationEmail();
-                          if (sent)
+                          if (await controller.resend()) {
                             AppSnackbar.success('Verification email sent.');
-                          else if (controller.error.value != null)
+                          } else if (controller.error.value != null) {
                             AppSnackbar.error(controller.error.value!);
+                          }
                         },
                   child: const Text('Send verification email again'),
                 ),
@@ -67,7 +66,7 @@ class EmailVerificationPage extends GetView<AuthController> {
                   onPressed: controller.isBusy.value
                       ? null
                       : () async {
-                          await controller.signOutUnverified();
+                          await controller.logOut();
                           Get.offAll(() => const LoginPage());
                         },
                   child: const Text('Log out and use another account'),

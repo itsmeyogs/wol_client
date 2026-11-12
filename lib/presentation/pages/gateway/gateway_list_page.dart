@@ -5,20 +5,17 @@ import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/auth/auth_mode.dart';
 import '../../../data/models/gateway.dart';
-import '../../controllers/gateway_controller.dart';
-import '../../controllers/gateway_session_controller.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/gateway_list_controller.dart';
 import '../settings/settings_page.dart';
 import 'gateway_dashboard_page.dart';
 import 'gateway_form_page.dart';
 import '../../../core/logging/app_logger.dart';
 
-class GatewayListPage extends GetView<GatewayController> {
+class GatewayListPage extends GetView<GatewayListController> {
   const GatewayListPage({super.key});
   void _open(Gateway gateway) {
-    Get.find<GatewaySessionController>().open(gateway);
+    controller.openGateway(gateway);
     Get.to(() => const GatewayDashboardPage());
   }
 
@@ -112,19 +109,18 @@ class GatewayListPage extends GetView<GatewayController> {
       appBar: AppBar(
         title: const Text('WoL gateways'),
         actions: [
-          if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
-            Obx(
-              () => IconButton(
-                tooltip: 'Refresh gateways',
-                onPressed: controller.isLoading.value ? null : controller.load,
-                icon: controller.isLoading.value
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
-              ),
+          Obx(
+            () => IconButton(
+              tooltip: 'Refresh gateways',
+              onPressed: controller.isRefreshing ? null : controller.refresh,
+              icon: controller.isRefreshing
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
             ),
+          ),
           IconButton(
             tooltip: 'Settings',
             onPressed: () => Get.to(() => const SettingsPage()),
@@ -144,7 +140,7 @@ class GatewayListPage extends GetView<GatewayController> {
         if (controller.error.value != null && controller.gateways.isEmpty) {
           return _MessageState(
             message: controller.error.value!,
-            onRetry: controller.load,
+            onRetry: controller.refresh,
           );
         }
         if (controller.gateways.isEmpty) {
@@ -211,7 +207,7 @@ class GatewayListPage extends GetView<GatewayController> {
         );
         final list = Center(child: content);
         return defaultTargetPlatform == TargetPlatform.android && !kIsWeb
-            ? RefreshIndicator(onRefresh: controller.load, child: list)
+            ? RefreshIndicator(onRefresh: controller.refresh, child: list)
             : list;
       }),
     );

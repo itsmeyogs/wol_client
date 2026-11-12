@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/auth/auth_mode.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/auth_session_controller.dart';
 import '../gateway/gateway_list_page.dart';
 import 'login_page.dart';
 import 'email_verification_page.dart';
 
-class AuthGate extends GetView<AuthController> {
+class AuthGate extends GetView<AuthSessionController> {
   const AuthGate({super.key});
 
   @override
@@ -28,7 +28,7 @@ class AuthGate extends GetView<AuthController> {
   });
 }
 
-class _UnavailableAuth extends GetView<AuthController> {
+class _UnavailableAuth extends GetView<AuthSessionController> {
   const _UnavailableAuth({required this.error});
   final String? error;
 

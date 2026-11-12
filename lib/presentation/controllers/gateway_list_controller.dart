@@ -1,28 +1,33 @@
 import 'package:get/get.dart';
+
 import '../../core/auth/auth_mode.dart';
 import '../../core/errors/gateway_failure.dart';
+import '../../core/logging/app_logger.dart';
 import '../../core/network/gateway_url.dart';
+import '../../core/ui/app_snackbar.dart';
 import '../../data/models/gateway.dart';
 import '../../domain/usecases/gateway_usecases.dart';
-import '../../domain/usecases/gateway_sync_usecase.dart';
-import '../../core/logging/app_logger.dart';
-import '../../core/ui/app_snackbar.dart';
-import 'auth_controller.dart';
+import 'auth_session_controller.dart';
+import 'gateway_session_controller.dart';
+import 'gateway_sync_controller.dart';
 
-class GatewayController extends GetxController {
-  GatewayController(
+/// Owns the gateway list screen: loading, deleting, and the mutation API used
+/// by [GatewayFormController].
+class GatewayListController extends GetxController {
+  GatewayListController(
     this._getGateways,
     this._saveGateway,
-    this._deleteGateway, [
-    SyncGateways? syncGateways,
-    ClearLocalGateways? clearLocalGateways,
-  ]) : _syncGateways = syncGateways,
-       _clearLocalGateways = clearLocalGateways;
+    this._deleteGateway,
+    this._clearLocalGateways, [
+    this._session,
+  ]);
+
   final GetGateways _getGateways;
   final SaveGateway _saveGateway;
   final DeleteGateway _deleteGateway;
-  final SyncGateways? _syncGateways;
-  final ClearLocalGateways? _clearLocalGateways;
+  final ClearLocalGateways _clearLocalGateways;
+  final AuthSessionController? _session;
+
   final gateways = <Gateway>[].obs;
   final isLoading = false.obs;
   final error = RxnString();
@@ -44,12 +49,34 @@ class GatewayController extends GetxController {
         exception,
         stackTrace,
       );
-      error.value = 'Local gateways could not be loaded.';
-      AppSnackbar.error(error.value!);
+      error.value = 'Local gateways could not be loaded. ${_detail(exception)}';
+      AppSnackbar.error('Local gateways could not be loaded.');
     } finally {
       isLoading.value = false;
     }
   }
+
+  /// User-initiated refresh: pull the cloud copy when signed in, otherwise
+  /// just re-read the local database (guest mode has no cloud data).
+  Future<void> refresh() async {
+    final session = _session;
+    if (session != null &&
+        session.mode.value == AuthMode.authenticated &&
+        Get.isRegistered<GatewaySyncController>()) {
+      await Get.find<GatewaySyncController>().sync();
+      return;
+    }
+    await load();
+  }
+
+  static String _detail(Object exception) =>
+      exception.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  /// True while the local list or a cloud refresh is in flight.
+  bool get isRefreshing =>
+      isLoading.value ||
+      (Get.isRegistered<GatewaySyncController>() &&
+          Get.find<GatewaySyncController>().isSyncing.value);
 
   Future<void> saveGateway({
     int? id,
@@ -84,29 +111,34 @@ class GatewayController extends GetxController {
       ),
     );
     await load();
-    await _syncLocalChange();
+    await syncLocalChange();
   }
 
   Future<void> deleteGateway(Gateway gateway) async {
     if (gateway.id == null) return;
     await _deleteGateway(gateway.id!);
     await load();
-    await _syncLocalChange();
+    await syncLocalChange();
+  }
+
+  void openGateway(Gateway gateway) {
+    if (Get.isRegistered<GatewaySessionController>()) {
+      Get.find<GatewaySessionController>().open(gateway);
+    }
   }
 
   Future<void> clearLocalState() async {
-    await _clearLocalGateways?.call();
+    await _clearLocalGateways();
     gateways.clear();
     error.value = null;
   }
 
-  Future<void> _syncLocalChange() async {
-    if (!Get.isRegistered<AuthController>() ||
-        Get.find<AuthController>().mode.value != AuthMode.authenticated) {
-      return;
-    }
+  Future<void> syncLocalChange() async {
+    final session = _session;
+    if (session == null || session.mode.value != AuthMode.authenticated) return;
+    if (!Get.isRegistered<GatewaySyncController>()) return;
     try {
-      await _syncGateways?.call();
+      await Get.find<GatewaySyncController>().runSync();
     } catch (exception, stackTrace) {
       AppLogger.instance.error(
         'Local gateway sync failed: ${exception.runtimeType}',

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/ui/app_snackbar.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/settings_email_controller.dart';
 
 class SettingsEmailPage extends StatefulWidget {
   const SettingsEmailPage({super.key, required this.createAccount});
@@ -17,7 +17,7 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmation = TextEditingController();
-  AuthController get auth => Get.find<AuthController>();
+  SettingsEmailController get auth => Get.find<SettingsEmailController>();
 
   @override
   void dispose() {
@@ -27,11 +27,19 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
     super.dispose();
   }
 
+  /// Pops this page first, then shows the result on the page underneath.
+  /// GetX's back() closes an open snackbar instead of the route, so the
+  /// route must be popped with Navigator before the snackbar is created.
+  void _closeWithMessage(String message) {
+    Navigator.of(context).pop();
+    AppSnackbar.success(message);
+  }
+
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     final success = widget.createAccount
-        ? await auth.registerEmailFromSettings(_email.text, _password.text)
-        : await auth.signInEmail(_email.text, _password.text);
+        ? await auth.createAccount(_email.text, _password.text)
+        : await auth.signIn(_email.text, _password.text);
     if (!mounted) return;
     if (!success) {
       if (auth.error.value != null) {
@@ -39,15 +47,22 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
       }
       return;
     }
-    if (widget.createAccount) {
-      AppSnackbar.success(
-        'Account created. Verification link sent to your email.',
-      );
-      Get.back();
-    } else {
-      AppSnackbar.success('Signed in successfully.');
-      Get.back();
+    _closeWithMessage(
+      widget.createAccount
+          ? 'Account created. Verification link sent to your email.'
+          : 'Signed in successfully.',
+    );
+  }
+
+  Future<void> _googleSignIn() async {
+    if (!await auth.signInGoogle()) {
+      if (auth.error.value != null && mounted) {
+        AppSnackbar.error(auth.error.value!);
+      }
+      return;
     }
+    if (!mounted) return;
+    _closeWithMessage('Google sign-in complete.');
   }
 
   @override
@@ -119,16 +134,7 @@ class _SettingsEmailPageState extends State<SettingsEmailPage> {
                 if (!widget.createAccount) ...[
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: auth.isBusy.value
-                        ? null
-                        : () async {
-                            if (await auth.signInGoogle()) {
-                              AppSnackbar.success('Google sign-in complete.');
-                              Get.back();
-                            } else if (auth.error.value != null) {
-                              AppSnackbar.error(auth.error.value!);
-                            }
-                          },
+                    onPressed: auth.isBusy.value ? null : _googleSignIn,
                     icon: const Icon(Icons.account_circle_outlined),
                     label: const Text('Sign in with Google'),
                   ),

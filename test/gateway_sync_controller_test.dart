@@ -16,13 +16,26 @@ void main() {
     final controller = GatewaySyncController(SyncGateways(repository));
 
     final first = controller.sync();
-    await controller.sync();
+    // A concurrent caller joins the running sync instead of no-oping.
+    final second = controller.sync();
     expect(calls, 1);
 
     gate.complete();
-    await first;
-    await Future<void>.delayed(Duration.zero);
+    await Future.wait([first, second]);
     expect(calls, 2);
+  });
+
+  test('reports the Firebase error code to the caller', () async {
+    final controller = GatewaySyncController(
+      SyncGateways(
+        _FakeSyncRepository(() async => throw StateError('no user')),
+      ),
+    );
+
+    await controller.sync(silent: true);
+
+    expect(controller.error.value, 'no user');
+    expect(controller.isSyncing.value, isFalse);
   });
 }
 

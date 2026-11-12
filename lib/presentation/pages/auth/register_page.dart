@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/ui/app_snackbar.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/register_controller.dart';
 import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -16,9 +16,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final email = TextEditingController();
   final password = TextEditingController();
   final confirmation = TextEditingController();
-  bool registered = false;
 
-  AuthController get controller => Get.find<AuthController>();
+  RegisterController get controller => Get.find<RegisterController>();
 
   @override
   void dispose() {
@@ -37,8 +36,7 @@ class _RegisterPageState extends State<RegisterPage> {
       AppSnackbar.error('Password must be at least 6 characters.');
       return;
     }
-    if (await controller.registerEmail(email.text, password.text)) {
-      setState(() => registered = true);
+    if (await controller.register(email.text, password.text)) {
       AppSnackbar.success(
         'Registration complete. Verify your email before signing in.',
       );
@@ -57,7 +55,7 @@ class _RegisterPageState extends State<RegisterPage> {
           padding: const EdgeInsets.all(24),
           child: Obx(() {
             final busy = controller.isBusy.value;
-            if (registered) {
+            if (controller.registered.value) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

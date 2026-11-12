@@ -5,7 +5,7 @@ import '../../../core/errors/gateway_failure.dart';
 import '../../../core/responsive/app_responsive.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
-import '../../controllers/device_controller.dart';
+import '../../controllers/gateway_dashboard_controller.dart';
 import '../../controllers/gateway_session_controller.dart';
 import '../device/device_detail_page.dart';
 import '../device/discovery_scan_page.dart';
@@ -19,12 +19,12 @@ class GatewayDashboardPage extends StatefulWidget {
 }
 
 class _GatewayDashboardPageState extends State<GatewayDashboardPage> {
-  late final DeviceController controller;
+  late final GatewayDashboardController controller;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.find<DeviceController>()..load();
+    controller = Get.find<GatewayDashboardController>()..load();
   }
 
   Future<void> _add() async {

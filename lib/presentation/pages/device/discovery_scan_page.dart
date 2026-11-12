@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:get/get.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
-import '../../controllers/device_controller.dart';
+import '../../controllers/discovery_scan_controller.dart';
 import 'device_add_edit_page.dart';
 
 class DiscoveryScanPage extends StatefulWidget {
@@ -14,24 +14,24 @@ class DiscoveryScanPage extends StatefulWidget {
 }
 
 class _DiscoveryScanPageState extends State<DiscoveryScanPage> {
-  late final DeviceController controller;
+  late final DiscoveryScanController controller;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.find<DeviceController>()..discover();
+    controller = Get.find<DiscoveryScanController>()..discover();
   }
 
   Future<void> _openResult(DiscoveryDevice device) async {
     final result = await Get.to<String>(
       () => DeviceAddEditPage(discovery: device),
     );
-    if (result != null && mounted) Get.back(result: result);
+    if (result != null && mounted) Navigator.of(context).pop(result);
   }
 
   Future<void> _addManually() async {
     final result = await Get.to<String>(() => const DeviceAddEditPage());
-    if (result != null && mounted) Get.back(result: result);
+    if (result != null && mounted) Navigator.of(context).pop(result);
   }
 
   Future<void> _refresh() async {

@@ -4,9 +4,8 @@ import 'package:get/get.dart';
 import '../../../core/errors/gateway_failure.dart';
 import '../../../core/ui/app_snackbar.dart';
 import '../../../data/models/device.dart';
-import '../../controllers/device_controller.dart';
+import '../../controllers/device_detail_controller.dart';
 import 'device_add_edit_page.dart';
-import '../../../core/logging/app_logger.dart';
 
 class DeviceDetailPage extends StatefulWidget {
   const DeviceDetailPage({super.key, required this.deviceId});
@@ -18,68 +17,30 @@ class DeviceDetailPage extends StatefulWidget {
 }
 
 class _DeviceDetailPageState extends State<DeviceDetailPage> {
-  late final DeviceController controller;
-  Device? device;
-  String? error;
-  bool loading = true;
+  late final DeviceDetailController controller;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.find<DeviceController>();
-    _load();
+    controller = Get.find<DeviceDetailController>();
+    controller.load(widget.deviceId);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      loading = true;
-      error = null;
-    });
-    try {
-      device = await controller.loadDevice(widget.deviceId);
-    } on GatewayFailure catch (failure) {
-      error = failure.message;
-    } catch (exception, stackTrace) {
-      AppLogger.instance.error(
-        'Device detail page load failed: ${exception.runtimeType}',
-        exception,
-        stackTrace,
-      );
-      error = 'Device details could not be loaded.';
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
+  Future<void> _reload() => controller.load(widget.deviceId);
 
   Future<void> _checkStatus() async {
-    final current = device;
-    if (current == null) return;
     try {
-      final result = await controller.checkStatus(current);
-      if (!mounted) return;
-      setState(() {
-        device = current.copyWith(
-          status: result.status,
-          lastCheckAt: result.checkedAt,
-          lastCheckLatencyMs: result.latencyMs,
-          lastCheckReason: result.reason,
-        );
-      });
+      final result = await controller.checkStatus();
       AppSnackbar.success('Status checked: ${result.status}.');
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
-    } catch (exception, stackTrace) {
-      AppLogger.instance.error(
-        'Device status action failed: ${exception.runtimeType}',
-        exception,
-        stackTrace,
-      );
+    } catch (_) {
       AppSnackbar.error('Device status could not be checked.');
     }
   }
 
   Future<void> _wake() async {
-    final current = device;
+    final current = controller.device.value;
     if (current == null) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -100,48 +61,35 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     );
     if (confirmed != true) return;
     try {
-      final result = await controller.wake(current);
-      if (mounted) {
-        setState(() {
-          device = current.copyWith(
-            lastWolResult: result.result,
-            lastWolAt: DateTime.now(),
-          );
-        });
-      }
+      final result = await controller.wake();
       AppSnackbar.success(
         '${result.result}: packet delivery does not prove the computer powered on.',
       );
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
-    } catch (exception, stackTrace) {
-      AppLogger.instance.error(
-        'Device wake action failed: ${exception.runtimeType}',
-        exception,
-        stackTrace,
-      );
+    } catch (_) {
       AppSnackbar.error('Wake packet could not be sent.');
     }
   }
 
   Future<void> _edit() async {
-    final current = device;
+    final current = controller.device.value;
     if (current == null) return;
     final result = await Get.to<String>(
       () => DeviceAddEditPage(device: current),
     );
     if (result == 'updated') {
-      await _load();
-      if (error == null) {
+      await _reload();
+      if (controller.error.value == null) {
         AppSnackbar.success('Device updated.');
       } else {
-        AppSnackbar.error(error!);
+        AppSnackbar.error(controller.error.value!);
       }
     }
   }
 
   Future<void> _delete() async {
-    final current = device;
+    final current = controller.device.value;
     if (current == null) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -162,54 +110,51 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     );
     if (confirmed != true) return;
     try {
-      await controller.deleteDevice(current);
-      if (mounted) Get.back(result: 'deleted');
+      await controller.delete();
+      if (mounted) Navigator.of(context).pop('deleted');
     } on GatewayFailure catch (failure) {
       AppSnackbar.error(failure.message);
-    } catch (exception, stackTrace) {
-      AppLogger.instance.error(
-        'Device delete action failed: ${exception.runtimeType}',
-        exception,
-        stackTrace,
-      );
+    } catch (_) {
       AppSnackbar.error('Device could not be deleted.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final current = device;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(current?.name ?? 'Device details'),
-        actions: [
-          if (current != null)
-            IconButton(
-              onPressed: _edit,
-              tooltip: 'Edit device',
-              icon: const Icon(Icons.edit_outlined),
-            ),
-          if (current != null)
-            IconButton(
-              onPressed: _delete,
-              tooltip: 'Delete device',
-              icon: const Icon(Icons.delete_outline),
-            ),
-        ],
-      ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : error != null
-          ? _ErrorState(message: error!, onRetry: _load)
-          : current == null
-          ? _ErrorState(message: 'Device was not found.', onRetry: _load)
-          : _Details(
-              device: current,
-              controller: controller,
-              onCheckStatus: _checkStatus,
-              onWake: _wake,
-            ),
-    );
+    return Obx(() {
+      final current = controller.device.value;
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(current?.name ?? 'Device details'),
+          actions: [
+            if (current != null)
+              IconButton(
+                onPressed: _edit,
+                tooltip: 'Edit device',
+                icon: const Icon(Icons.edit_outlined),
+              ),
+            if (current != null)
+              IconButton(
+                onPressed: _delete,
+                tooltip: 'Delete device',
+                icon: const Icon(Icons.delete_outline),
+              ),
+          ],
+        ),
+        body: controller.isLoading.value
+            ? const Center(child: CircularProgressIndicator())
+            : controller.error.value != null
+            ? _ErrorState(message: controller.error.value!, onRetry: _reload)
+            : current == null
+            ? _ErrorState(message: 'Device was not found.', onRetry: _reload)
+            : _Details(
+                device: current,
+                controller: controller,
+                onCheckStatus: _checkStatus,
+                onWake: _wake,
+              ),
+      );
+    });
   }
 }
 
@@ -222,7 +167,7 @@ class _Details extends StatelessWidget {
   });
 
   final Device device;
-  final DeviceController controller;
+  final DeviceDetailController controller;
   final VoidCallback onCheckStatus;
   final VoidCallback onWake;
 
@@ -290,10 +235,10 @@ class _Details extends StatelessWidget {
           const SizedBox(height: 20),
           Obx(
             () => FilledButton.icon(
-              onPressed: controller.statusLoadingIds.contains(device.id)
+              onPressed: controller.isCheckingStatus.value
                   ? null
                   : onCheckStatus,
-              icon: controller.statusLoadingIds.contains(device.id)
+              icon: controller.isCheckingStatus.value
                   ? const SizedBox.square(
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
@@ -306,10 +251,8 @@ class _Details extends StatelessWidget {
             const SizedBox(height: 12),
             Obx(
               () => OutlinedButton.icon(
-                onPressed: controller.wakeLoadingIds.contains(device.id)
-                    ? null
-                    : onWake,
-                icon: controller.wakeLoadingIds.contains(device.id)
+                onPressed: controller.isWaking.value ? null : onWake,
+                icon: controller.isWaking.value
                     ? const SizedBox.square(
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
